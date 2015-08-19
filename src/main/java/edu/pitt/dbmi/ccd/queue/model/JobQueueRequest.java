@@ -18,6 +18,9 @@
  */
 package edu.pitt.dbmi.ccd.queue.model;
 
+import javax.validation.constraints.NotNull;
+import org.hibernate.validator.constraints.NotEmpty;
+
 /**
  * 
  * Aug 18, 2015 12:14:48 PM
@@ -26,9 +29,17 @@ package edu.pitt.dbmi.ccd.queue.model;
  *
  */
 public class JobQueueRequest {
-	
+
+	@NotNull
+	@NotEmpty
 	private String algorName;
+
+	@NotNull
+	@NotEmpty
 	private String command;
+
+	@NotNull
+	@NotEmpty
 	private String fileName;
 
 	/**

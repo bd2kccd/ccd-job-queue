@@ -21,6 +21,7 @@ package edu.pitt.dbmi.ccd.queue.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -52,7 +53,7 @@ import edu.pitt.dbmi.ccd.queue.util.JobQueueUtility;
 @Service
 public class JobQueueService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(JobQueueService.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(JobQueueService.class);
 
 	private final JobQueueInfoService jobQueueInfoService;
 
@@ -62,54 +63,66 @@ public class JobQueueService {
 
 	private final int queueSize;
 
+	private final boolean disableJobScheduler;
+	
 	/**
 	 * @param jobQueueInfoService
+	 * @param userAccountService
+	 * @param algorithmService
+	 * @param queueSize
+	 * 
 	 */
 	@Autowired(required = true)
-	public JobQueueService(JobQueueInfoService jobQueueInfoService, UserAccountService userAccountService, AlgorithmService algorithmService,
-			@Value("${app.queue.size:1}") final int queueSize) {
+	public JobQueueService(JobQueueInfoService jobQueueInfoService, UserAccountService userAccountService,
+			AlgorithmService algorithmService, @Value("${ccd.queue.size:1}") int queueSize, @Value("${ccd.disable.scheduler:true}") boolean disableJobScheduler) {
 		this.jobQueueInfoService = jobQueueInfoService;
 		this.userAccountService = userAccountService;
 		this.algorithmService = algorithmService;
 		this.queueSize = queueSize;
+		this.disableJobScheduler = disableJobScheduler;
 	}
 
 	@Scheduled(fixedRate = 5000)
 	public void executeJobInQueue() {
+		if(disableJobScheduler)return;
+		
+		System.out.println(new Date(System.currentTimeMillis()));
 		int numRunningJobs = jobQueueInfoService.getNumRunningJobs();
+		System.out.println("numRunningJobs: " + numRunningJobs + " queueSize: " + queueSize);
+		
 		if (numRunningJobs < queueSize) {
-			//Waiting list to execute
+			// Waiting list to execute
 			List<JobQueueInfo> jobList = jobQueueInfoService.findByStatus(new Integer(0));
-			if(jobList != null && jobList.size() > 0){
-				for(int i=0;i<(queueSize - numRunningJobs);i++){
-					JobQueueInfo queuedJobInfo = jobList.get(i);
-			        LOGGER.info("Run Job ID: " + queuedJobInfo.getId());
+			if (jobList != null && jobList.size() > 0) {
+				for (int i = 0; i < (queueSize - numRunningJobs); i++) {
+					JobQueueInfo jobQueueInfo = jobList.get(i);
+					LOGGER.info("Run Job ID: " + jobQueueInfo.getId());
 					try {
-						algorithmService.runAlgorithmFromQueue(queuedJobInfo.getId(), queuedJobInfo.getCommands(), queuedJobInfo.getFileName(),
-								queuedJobInfo.getTmpDirectory(), queuedJobInfo.getOutputDirectory());
-						
-				        LOGGER.info("Set Job's status to be 1 (running): " + queuedJobInfo.getId());
-						queuedJobInfo.setStatus(1);			
-						jobQueueInfoService.saveJobIntoQueue(queuedJobInfo);
+						algorithmService.runAlgorithmFromQueue(jobQueueInfo.getId(), jobQueueInfo.getCommands(),
+								jobQueueInfo.getFileName(), jobQueueInfo.getTmpDirectory(),
+								jobQueueInfo.getOutputDirectory());
+
+						LOGGER.info("Set Job's status to be 1 (running): " + jobQueueInfo.getId());
+						jobQueueInfo.setStatus(1);
+						jobQueueInfoService.saveJobIntoQueue(jobQueueInfo);
 					} catch (Exception exception) {
-						LOGGER.error("Unable to run " + queuedJobInfo.getAlgorName(), exception);
+						LOGGER.error("Unable to run " + jobQueueInfo.getAlgorName(), exception);
 					}
 				}
 			}
-			
+
 		}
-		
-		//Waiting list to terminate
+
+		// Waiting list to terminate
 		List<JobQueueInfo> jobList = jobQueueInfoService.findByStatus(new Integer(2));
-		if(jobList != null && jobList.size() > 0){
-			for(int i=0;i<(queueSize - numRunningJobs);i++){
-				JobQueueInfo queuedJobInfo = jobList.get(i);
-				killJob(queuedJobInfo.getId());
-			}
+		if (jobList != null && jobList.size() > 0) {
+			jobList.forEach(jobQueueInfo -> {
+				killJob(jobQueueInfo.getId());
+			});
 		}
 
 	}
-	
+
 	public List<AlgorithmJob> createJobQueueList(String username) {
 		List<AlgorithmJob> listItems = new ArrayList<AlgorithmJob>();
 
@@ -121,47 +134,52 @@ public class JobQueueService {
 		});
 		return listItems;
 	}
-	
-	public AlgorithmJob removeJobQueue(Long queueId){
+
+	public AlgorithmJob removeJobQueue(Long queueId) {
 		JobQueueInfo job = jobQueueInfoService.findOne(queueId);
 		job.setStatus(2);
 		jobQueueInfoService.saveJobIntoQueue(job);
 		return JobQueueUtility.convertJobEntity2JobModel(job);
 	}
-	
-	private void killJob(Long queueId){
-		
+
+	private void killJob(Long queueId) {
+
 		JobQueueInfo jobQueueInfo = jobQueueInfoService.findOne(queueId);
-		if(jobQueueInfo.getStatus() == 0){
-	        LOGGER.info("Delete Job ID by user from queue: " + queueId);
-	        jobQueueInfoService.deleteJobById(queueId);
-		}else{
+		if (jobQueueInfo.getStatus() == 0) {
+			LOGGER.info("Delete Job ID by user from queue: " + queueId);
+			jobQueueInfoService.deleteJobById(queueId);
+		} else {
 			Long pid = jobQueueInfo.getPid();
-			if(pid == null){
-		        LOGGER.info("Delete Job ID by user from queue: " + queueId);
-		        jobQueueInfoService.deleteJobById(queueId);
-			}else{
+			if (pid == null) {
+				LOGGER.info("Delete Job ID by user from queue: " + queueId);
+				jobQueueInfoService.deleteJobById(queueId);
+			} else {
 				Platform platform = Platform.detect();
-				System.out.println("Processes.isProcessRunning(platform, pid):" + Processes.isProcessRunning(platform, pid));
-				if(Processes.isProcessRunning(platform, pid)){
-					/*ISupportConfig support = null;
-					IStreamProcessor output = null;*/
+				System.out.println(
+						"Processes.isProcessRunning(platform, pid):" + Processes.isProcessRunning(platform, pid));
+				if (Processes.isProcessRunning(platform, pid)) {
+					/*
+					 * ISupportConfig support = null; IStreamProcessor output =
+					 * null;
+					 */
 					List<String> commands = new LinkedList<>();
 					if (platform == Platform.Windows) {
-						//return Processes.tryKillProcess(support, platform, output, pid.intValue());
+						// return Processes.tryKillProcess(support, platform,
+						// output, pid.intValue());
 						commands.add("taskkill");
 						commands.add("/pid");
 						commands.add(String.valueOf(pid));
 						commands.add("/f");
 						commands.add("/t");
-					}else{
-						//return Processes.killProcess(support, platform, output, pid.intValue());
+					} else {
+						// return Processes.killProcess(support, platform,
+						// output, pid.intValue());
 						commands.add("kill");
 						commands.add("-9");
 						commands.add(String.valueOf(pid));
 					}
 					LOGGER.info("Kill Job Queue Id: " + jobQueueInfo.getId());
-					jobQueueInfo.setStatus(2);			
+					jobQueueInfo.setStatus(2);
 					jobQueueInfoService.saveJobIntoQueue(jobQueueInfo);
 					ProcessBuilder pb = new ProcessBuilder(commands);
 					try {
@@ -170,9 +188,9 @@ public class JobQueueService {
 						// TODO Auto-generated catch block
 						LOGGER.error("Request to kill an algorithm job did not run successfully.", e);
 					}
-				}else{
-			        LOGGER.info("Job does not exist, delete Job ID from queue: " + queueId);
-			        jobQueueInfoService.deleteJobById(queueId);
+				} else {
+					LOGGER.info("Job does not exist, delete Job ID from queue: " + queueId);
+					jobQueueInfoService.deleteJobById(queueId);
 				}
 			}
 		}

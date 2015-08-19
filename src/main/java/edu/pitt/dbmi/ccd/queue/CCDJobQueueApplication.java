@@ -20,7 +20,6 @@ package edu.pitt.dbmi.ccd.queue;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 
@@ -30,15 +29,14 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  *
  */
 @SpringBootApplication
-@EnableScheduling
-public class CCDJobQueueManager {
+public class CCDJobQueueApplication {
 
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		SpringApplication.run(CCDJobQueueManager.class, args);
+		SpringApplication.run(CCDJobQueueApplication.class, args);
 	}
 
 }
