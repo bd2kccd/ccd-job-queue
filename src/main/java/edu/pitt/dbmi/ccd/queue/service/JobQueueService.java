@@ -84,17 +84,33 @@ public class JobQueueService {
 
 	@Scheduled(fixedRate = 5000)
 	public void executeJobInQueue() {
+		System.out.println(new Date(System.currentTimeMillis()));
+		
 		if(disableJobScheduler)return;
 		
-		System.out.println(new Date(System.currentTimeMillis()));
-		int numRunningJobs = jobQueueInfoService.getNumRunningJobs();
+		int numRunningJobs = 0;
+		List<JobQueueInfo> runningJobList = jobQueueInfoService.findByStatus(new Integer(1));
+		if(runningJobList != null && runningJobList.size() > 0) {
+			Platform platform = Platform.detect();
+
+			for(int i=0;i<runningJobList.size();i++){
+				JobQueueInfo jobQueueInfo = runningJobList.get(i);
+				if(jobQueueInfo == null || jobQueueInfo.getPid() == null || !Processes.isProcessRunning(platform, jobQueueInfo.getPid())){
+					jobQueueInfoService.deleteJobInQueue(jobQueueInfo);
+					runningJobList.remove(jobQueueInfo);
+				}
+			}
+			
+			numRunningJobs = runningJobList.size();
+		}
+
 		System.out.println("numRunningJobs: " + numRunningJobs + " queueSize: " + queueSize);
 		
 		if (numRunningJobs < queueSize) {
 			// Waiting list to execute
 			List<JobQueueInfo> jobList = jobQueueInfoService.findByStatus(new Integer(0));
 			if (jobList != null && jobList.size() > 0) {
-				for (int i = 0; i < (queueSize - numRunningJobs); i++) {
+				for (int i = 0; i < Math.min(jobList.size(), (queueSize - numRunningJobs)); i++) {
 					JobQueueInfo jobQueueInfo = jobList.get(i);
 					LOGGER.info("Run Job ID: " + jobQueueInfo.getId());
 					try {
@@ -105,6 +121,7 @@ public class JobQueueService {
 						LOGGER.info("Set Job's status to be 1 (running): " + jobQueueInfo.getId());
 						jobQueueInfo.setStatus(1);
 						jobQueueInfoService.saveJobIntoQueue(jobQueueInfo);
+						jobList.remove(jobQueueInfo);
 					} catch (Exception exception) {
 						LOGGER.error("Unable to run " + jobQueueInfo.getAlgorName(), exception);
 					}
@@ -137,6 +154,7 @@ public class JobQueueService {
 
 	public AlgorithmJob removeJobQueue(Long queueId) {
 		JobQueueInfo job = jobQueueInfoService.findOne(queueId);
+		if(job == null)return null;
 		job.setStatus(2);
 		jobQueueInfoService.saveJobIntoQueue(job);
 		return JobQueueUtility.convertJobEntity2JobModel(job);
