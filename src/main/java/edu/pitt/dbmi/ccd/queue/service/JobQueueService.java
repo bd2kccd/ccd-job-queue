@@ -110,21 +110,21 @@ public class JobQueueService {
 			// Waiting list to execute
 			List<JobQueueInfo> jobList = jobQueueInfoService.findByStatus(new Integer(0));
 			if (jobList != null && jobList.size() > 0) {
-				for (int i = 0; i < Math.min(jobList.size(), (queueSize - numRunningJobs)); i++) {
-					JobQueueInfo jobQueueInfo = jobList.get(i);
-					LOGGER.info("Run Job ID: " + jobQueueInfo.getId());
-					try {
-						algorithmService.runAlgorithmFromQueue(jobQueueInfo.getId(), jobQueueInfo.getCommands(),
-								jobQueueInfo.getFileName(), jobQueueInfo.getTmpDirectory(),
-								jobQueueInfo.getOutputDirectory());
+				// Execute one at a time
+				JobQueueInfo jobQueueInfo = jobList.get(0);
+				LOGGER.info("Run Job ID: " + jobQueueInfo.getId());
+				try {
+					LOGGER.info("Set Job's status to be 1 (running): " + jobQueueInfo.getId());
+					jobQueueInfo.setStatus(1);
+					jobQueueInfoService.saveJobIntoQueue(jobQueueInfo);
 
-						LOGGER.info("Set Job's status to be 1 (running): " + jobQueueInfo.getId());
-						jobQueueInfo.setStatus(1);
-						jobQueueInfoService.saveJobIntoQueue(jobQueueInfo);
-						jobList.remove(jobQueueInfo);
-					} catch (Exception exception) {
-						LOGGER.error("Unable to run " + jobQueueInfo.getAlgorName(), exception);
-					}
+					algorithmService.runAlgorithmFromQueue(jobQueueInfo.getId(), jobQueueInfo.getCommands(),
+							jobQueueInfo.getFileName(), jobQueueInfo.getTmpDirectory(),
+							jobQueueInfo.getOutputDirectory());
+					
+					jobList.remove(jobQueueInfo);
+				} catch (Exception exception) {
+					LOGGER.error("Unable to run " + jobQueueInfo.getAlgorName(), exception);
 				}
 			}
 
