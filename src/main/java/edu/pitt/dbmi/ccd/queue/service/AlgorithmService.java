@@ -18,6 +18,9 @@
  */
 package edu.pitt.dbmi.ccd.queue.service;
 
+import de.flapdoodle.embed.process.runtime.Processes;
+import edu.pitt.dbmi.ccd.db.entity.JobQueueInfo;
+import edu.pitt.dbmi.ccd.db.service.JobQueueInfoService;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,10 +37,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
-import de.flapdoodle.embed.process.runtime.Processes;
-import edu.pitt.dbmi.ccd.db.entity.JobQueueInfo;
-import edu.pitt.dbmi.ccd.db.service.JobQueueInfoService;
-
 /**
  *
  * Apr 16, 2015 11:41:02 AM
@@ -50,15 +49,15 @@ public class AlgorithmService {
     private static final Logger LOGGER = LoggerFactory.getLogger(AlgorithmService.class);
 
     private final JobQueueInfoService jobQueueInfoService;
-    
-	@Autowired(required = true)
-	public AlgorithmService(JobQueueInfoService queuedJobInfoService) {
-		this.jobQueueInfoService = queuedJobInfoService;
-	}
-	
+
+    @Autowired(required = true)
+    public AlgorithmService(JobQueueInfoService queuedJobInfoService) {
+        this.jobQueueInfoService = queuedJobInfoService;
+    }
+
     @Async
     public Future<Void> runAlgorithm(List<String> commands, String fileName, String tmpDirectory, String outputDirectory) {
-    	commands.add("--out");
+        commands.add("--out");
         commands.add(tmpDirectory);
 
         fileName = String.format("%s.txt", fileName);
@@ -80,7 +79,7 @@ public class AlgorithmService {
             pb.redirectError(error.toFile());
             Process process = pb.start();
             process.waitFor();
-            
+
             if (process.exitValue() == 0) {
                 Files.move(src, dest, StandardCopyOption.REPLACE_EXISTING);
                 Files.deleteIfExists(error);
@@ -91,17 +90,17 @@ public class AlgorithmService {
         } catch (IOException | InterruptedException exception) {
             LOGGER.error("Algorithm did not run successfully.", exception);
         }
-        
+
         return new AsyncResult<>(null);
     }
 
     @Async
     public Future<Void> runAlgorithmFromQueue(Long queueId, String command, String fileName, String tmpDirectory, String outputDirectory) {
-    	List<String> commands = new LinkedList<>();
-    	
-    	commands.addAll(Arrays.asList(command.split(";")));
-    	
-    	commands.add("--out");
+        List<String> commands = new LinkedList<>();
+
+        commands.addAll(Arrays.asList(command.split(";")));
+
+        commands.add("--out");
         commands.add(tmpDirectory);
 
         fileName = String.format("%s.txt", fileName);
@@ -122,16 +121,16 @@ public class AlgorithmService {
             ProcessBuilder pb = new ProcessBuilder(commands);
             pb.redirectError(error.toFile());
             Process process = pb.start();
-            
-			//Get process Id
-			Long pid = Processes.processId(process);
+
+            //Get process Id
+            Long pid = Processes.processId(process);
             JobQueueInfo queuedJobInfo = jobQueueInfoService.findOne(queueId);
-	        LOGGER.info("Set Job's pid to be: " + pid);
-			queuedJobInfo.setPid(pid);			
-			jobQueueInfoService.saveJobIntoQueue(queuedJobInfo);
-			
+            LOGGER.info("Set Job's pid to be: " + pid);
+            queuedJobInfo.setPid(pid);
+            jobQueueInfoService.saveJobIntoQueue(queuedJobInfo);
+
             process.waitFor();
-            
+
             if (process.exitValue() == 0) {
                 Files.move(src, dest, StandardCopyOption.REPLACE_EXISTING);
                 Files.deleteIfExists(error);
@@ -141,11 +140,11 @@ public class AlgorithmService {
             }
         } catch (IOException | InterruptedException exception) {
             LOGGER.error("Algorithm did not run successfully.", exception);
-		}
+        }
 
         LOGGER.info("Delete Job ID from queue: " + queueId);
         jobQueueInfoService.deleteJobById(queueId);
-        
+
         return new AsyncResult<>(null);
     }
 

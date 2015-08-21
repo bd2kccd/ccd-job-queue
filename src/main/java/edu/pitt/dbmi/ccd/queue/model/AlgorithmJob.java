@@ -19,73 +19,73 @@
 package edu.pitt.dbmi.ccd.queue.model;
 
 /**
- * 
+ *
  * Aug 3, 2015 10:22:18 AM
- * 
+ *
  * @author Chirayu (Kong) Wongchokprasitti
  *
  */
 public class AlgorithmJob {
 
-	private Long id;
-	private String algorName;
-	private String fileName;
-	private String status;
-	private String addedTime;
+    private Long id;
+    private String algorName;
+    private String fileName;
+    private String status;
+    private String addedTime;
 
-	/**
-	 * @param id
-	 * @param algorName
-	 * @param fileName
-	 * @param status
-	 * @param addedTime
-	 */
-	public AlgorithmJob(Long id, String algorName, String fileName, String status, String addedTime) {
-		this.id = id;
-		this.algorName = algorName;
-		this.fileName = fileName;
-		this.status = status;
-		this.addedTime = addedTime;
-	}
+    /**
+     * @param id
+     * @param algorName
+     * @param fileName
+     * @param status
+     * @param addedTime
+     */
+    public AlgorithmJob(Long id, String algorName, String fileName, String status, String addedTime) {
+        this.id = id;
+        this.algorName = algorName;
+        this.fileName = fileName;
+        this.status = status;
+        this.addedTime = addedTime;
+    }
 
-	public Long getId() {
-		return id;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public void setPid(Long id) {
-		this.id = id;
-	}
+    public void setPid(Long id) {
+        this.id = id;
+    }
 
-	public String getAlgorName() {
-		return algorName;
-	}
+    public String getAlgorName() {
+        return algorName;
+    }
 
-	public void setAlgorName(String algorName) {
-		this.algorName = algorName;
-	}
+    public void setAlgorName(String algorName) {
+        this.algorName = algorName;
+    }
 
-	public String getFileName() {
-		return fileName;
-	}
+    public String getFileName() {
+        return fileName;
+    }
 
-	public void setFileName(String fileName) {
-		this.fileName = fileName;
-	}
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
 
-	public String getStatus() {
-		return status;
-	}
+    public String getStatus() {
+        return status;
+    }
 
-	public void setStatus(String status) {
-		this.status = status;
-	}
+    public void setStatus(String status) {
+        this.status = status;
+    }
 
-	public String getAddedTime() {
-		return addedTime;
-	}
+    public String getAddedTime() {
+        return addedTime;
+    }
 
-	public void setAddedTime(String addedTime) {
-		this.addedTime = addedTime;
-	}
+    public void setAddedTime(String addedTime) {
+        this.addedTime = addedTime;
+    }
 
 }

@@ -23,18 +23,18 @@ import edu.pitt.dbmi.ccd.db.entity.JobQueueInfo;
 import edu.pitt.dbmi.ccd.queue.model.AlgorithmJob;
 
 /**
- * 
+ *
  * Aug 18, 2015 2:52:28 PM
- * 
+ *
  * @author Chirayu (Kong) Wongchokprasitti
  *
  */
 public class JobQueueUtility {
 
-	public static AlgorithmJob convertJobEntity2JobModel(JobQueueInfo job){
-		return new AlgorithmJob(job.getId(), job.getAlgorName(), job.getFileName(),
-				(job.getStatus().intValue() == 0 ? "Queued" : (job.getStatus().intValue() == 1 ? "Running" : "Kill Request")),
-				FilePrint.fileTimestamp(job.getAddedTime().getTime()));
-	}
-	
+    public static AlgorithmJob convertJobEntity2JobModel(JobQueueInfo job) {
+        return new AlgorithmJob(job.getId(), job.getAlgorName(), job.getFileName(),
+                (job.getStatus() == 0 ? "Queued" : (job.getStatus() == 1 ? "Running" : "Kill Request")),
+                FilePrint.fileTimestamp(job.getAddedTime().getTime()));
+    }
+
 }

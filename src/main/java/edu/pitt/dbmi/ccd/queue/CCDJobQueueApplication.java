@@ -22,21 +22,21 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * 
+ *
  * Aug 4, 2015 3:48:15 PM
- * 
+ *
  * @author Chirayu (Kong) Wongchokprasitti
  *
  */
 @SpringBootApplication
 public class CCDJobQueueApplication {
 
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		SpringApplication.run(CCDJobQueueApplication.class, args);
-	}
+    /**
+     * @param args
+     */
+    public static void main(String[] args) {
+        // TODO Auto-generated method stub
+        SpringApplication.run(CCDJobQueueApplication.class, args);
+    }
 
 }
