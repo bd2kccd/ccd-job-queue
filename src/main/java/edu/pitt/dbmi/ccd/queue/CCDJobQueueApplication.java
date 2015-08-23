@@ -18,8 +18,10 @@ package edu.pitt.dbmi.ccd.queue;
  * MA 02110-1301  USA
  */
 
+import edu.pitt.dbmi.ccd.db.CCDDatabaseApplication;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Import;
 
 /**
  *
@@ -29,13 +31,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *
  */
 @SpringBootApplication
+@Import(CCDDatabaseApplication.class)
 public class CCDJobQueueApplication {
 
     /**
      * @param args
      */
     public static void main(String[] args) {
-        // TODO Auto-generated method stub
         SpringApplication.run(CCDJobQueueApplication.class, args);
     }
 
