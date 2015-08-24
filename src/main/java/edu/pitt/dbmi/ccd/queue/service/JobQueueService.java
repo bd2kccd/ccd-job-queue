@@ -61,16 +61,13 @@ public class JobQueueService {
 
     private final boolean disableJobScheduler;
 
-    /**
-     * @param jobQueueInfoService
-     * @param userAccountService
-     * @param algorithmService
-     * @param queueSize
-     *
-     */
     @Autowired(required = true)
-    public JobQueueService(JobQueueInfoService jobQueueInfoService, UserAccountService userAccountService,
-            AlgorithmService algorithmService, @Value("${ccd.queue.size:1}") int queueSize, @Value("${ccd.disable.scheduler:true}") boolean disableJobScheduler) {
+    public JobQueueService(
+            JobQueueInfoService jobQueueInfoService,
+            UserAccountService userAccountService,
+            AlgorithmService algorithmService,
+            @Value("${ccd.queue.size:1}") int queueSize,
+            @Value("${ccd.disable.scheduler:true}") boolean disableJobScheduler) {
         this.jobQueueInfoService = jobQueueInfoService;
         this.userAccountService = userAccountService;
         this.algorithmService = algorithmService;
@@ -78,64 +75,51 @@ public class JobQueueService {
         this.disableJobScheduler = disableJobScheduler;
     }
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled()
     public void executeJobInQueue() {
         System.out.println(new Date(System.currentTimeMillis()));
-
         if (disableJobScheduler) {
             return;
         }
 
-        int numRunningJobs = 0;
-        List<JobQueueInfo> runningJobList = jobQueueInfoService.findByStatus(new Integer(1));
-        if (runningJobList != null && runningJobList.size() > 0) {
-            Platform platform = Platform.detect();
-
-            for (int i = 0; i < runningJobList.size(); i++) {
-                JobQueueInfo jobQueueInfo = runningJobList.get(i);
-                if (jobQueueInfo == null || jobQueueInfo.getPid() == null || !Processes.isProcessRunning(platform, jobQueueInfo.getPid())) {
-                    jobQueueInfoService.deleteJobInQueue(jobQueueInfo);
-                    runningJobList.remove(jobQueueInfo);
-                }
+        Platform platform = Platform.detect();
+        List<JobQueueInfo> jobsToSave = new LinkedList<>();
+        List<JobQueueInfo> runningJobList = jobQueueInfoService.findByStatus(1);
+        runningJobList.forEach(job -> {
+            Long pid = job.getPid();
+            if (pid == null || !Processes.isProcessRunning(platform, pid)) {
+                job.setStatus(2);  // request to kill
+                jobsToSave.add(job);
             }
+        });
 
-            numRunningJobs = runningJobList.size();
-        }
+        jobQueueInfoService.saveAll(jobsToSave);
 
-        System.out.println("numRunningJobs: " + numRunningJobs + " queueSize: " + queueSize);
-
-        if (numRunningJobs < queueSize) {
+        runningJobList = jobQueueInfoService.findByStatus(1);
+        int numRunningJobs = runningJobList.size();
+        if (numRunningJobs > 0 && numRunningJobs < queueSize) {
             // Waiting list to execute
-            List<JobQueueInfo> jobList = jobQueueInfoService.findByStatus(new Integer(0));
-            if (jobList != null && jobList.size() > 0) {
-                // Execute one at a time
-                JobQueueInfo jobQueueInfo = jobList.get(0);
-                LOGGER.info("Run Job ID: " + jobQueueInfo.getId());
-                try {
-                    LOGGER.info("Set Job's status to be 1 (running): " + jobQueueInfo.getId());
-                    jobQueueInfo.setStatus(1);
-                    jobQueueInfoService.saveJobIntoQueue(jobQueueInfo);
+            List<JobQueueInfo> jobList = jobQueueInfoService.findByStatus(0);
 
-                    algorithmService.runAlgorithmFromQueue(jobQueueInfo.getId(), jobQueueInfo.getCommands(),
-                            jobQueueInfo.getFileName(), jobQueueInfo.getTmpDirectory(),
-                            jobQueueInfo.getOutputDirectory());
+            // Execute one at a time
+            JobQueueInfo jobQueueInfo = jobList.get(0);
+            LOGGER.info("Run Job ID: " + jobQueueInfo.getId());
+            try {
+                LOGGER.info("Set Job's status to be 1 (running): " + jobQueueInfo.getId());
+                jobQueueInfo.setStatus(1);
+                jobQueueInfoService.saveJobIntoQueue(jobQueueInfo);
 
-                    jobList.remove(jobQueueInfo);
-                } catch (Exception exception) {
-                    LOGGER.error("Unable to run " + jobQueueInfo.getAlgorName(), exception);
-                }
+                algorithmService.runAlgorithmFromQueue(jobQueueInfo);
+            } catch (Exception exception) {
+                LOGGER.error("Unable to run " + jobQueueInfo.getAlgorName(), exception);
             }
-
         }
 
         // Waiting list to terminate
-        List<JobQueueInfo> jobList = jobQueueInfoService.findByStatus(new Integer(2));
-        if (jobList != null && jobList.size() > 0) {
-            jobList.forEach(jobQueueInfo -> {
-                killJob(jobQueueInfo.getId());
-            });
-        }
-
+        List<JobQueueInfo> jobList = jobQueueInfoService.findByStatus(2);
+        jobList.forEach(job -> {
+            killJob(job.getId());
+        });
     }
 
     public List<AlgorithmJob> createJobQueueList(String username) {
