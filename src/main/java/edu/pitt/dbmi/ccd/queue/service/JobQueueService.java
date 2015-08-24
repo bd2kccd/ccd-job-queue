@@ -44,6 +44,7 @@ import org.springframework.stereotype.Service;
  * Jul 31, 2015 11:19:59 AM
  *
  * @author Chirayu (Kong) Wongchokprasitti
+ * @author Kevin V. Bui (kvb2@pitt.edu)
  *
  */
 @Service
@@ -55,22 +56,21 @@ public class JobQueueService {
 
     private final UserAccountService userAccountService;
 
-    private final AlgorithmService algorithmService;
+    private final AlgorithmQueueService algorithmQueueService;
 
     private final int queueSize;
 
     private final boolean disableJobScheduler;
 
     @Autowired(required = true)
-    public JobQueueService(
-            JobQueueInfoService jobQueueInfoService,
+    public JobQueueService(JobQueueInfoService jobQueueInfoService,
             UserAccountService userAccountService,
-            AlgorithmService algorithmService,
+            AlgorithmQueueService algorithmQueueService,
             @Value("${ccd.queue.size:1}") int queueSize,
             @Value("${ccd.disable.scheduler:true}") boolean disableJobScheduler) {
         this.jobQueueInfoService = jobQueueInfoService;
         this.userAccountService = userAccountService;
-        this.algorithmService = algorithmService;
+        this.algorithmQueueService = algorithmQueueService;
         this.queueSize = queueSize;
         this.disableJobScheduler = disableJobScheduler;
     }
@@ -111,7 +111,7 @@ public class JobQueueService {
                     jobQueueInfo.setStatus(1);
                     jobQueueInfoService.saveJobIntoQueue(jobQueueInfo);
 
-                    algorithmService.runAlgorithmFromQueue(jobQueueInfo);
+                    algorithmQueueService.runAlgorithmFromQueue(jobQueueInfo);
                 } catch (Exception exception) {
                     LOGGER.error("Unable to run " + jobQueueInfo.getAlgorName(), exception);
                 }
@@ -126,7 +126,7 @@ public class JobQueueService {
     }
 
     public List<AlgorithmJob> createJobQueueList(String username) {
-        List<AlgorithmJob> listItems = new ArrayList<AlgorithmJob>();
+        List<AlgorithmJob> listItems = new ArrayList<>();
 
         UserAccount userAccount = userAccountService.findByUsername(username);
         List<JobQueueInfo> listJobs = jobQueueInfoService.findByUserAccounts(Collections.singleton(userAccount));
@@ -134,6 +134,7 @@ public class JobQueueService {
             AlgorithmJob algorithmJob = JobQueueUtility.convertJobEntity2JobModel(job);
             listItems.add(algorithmJob);
         });
+
         return listItems;
     }
 
@@ -144,11 +145,11 @@ public class JobQueueService {
         }
         job.setStatus(2);
         jobQueueInfoService.saveJobIntoQueue(job);
+
         return JobQueueUtility.convertJobEntity2JobModel(job);
     }
 
     private void killJob(Long queueId) {
-
         JobQueueInfo jobQueueInfo = jobQueueInfoService.findOne(queueId);
         if (jobQueueInfo.getStatus() == 0) {
             LOGGER.info("Delete Job ID by user from queue: " + queueId);

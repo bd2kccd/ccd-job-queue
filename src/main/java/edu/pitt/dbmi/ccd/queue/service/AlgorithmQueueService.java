@@ -44,14 +44,14 @@ import org.springframework.stereotype.Service;
  * @author Kevin V. Bui (kvb2@pitt.edu)
  */
 @Service
-public class AlgorithmService {
+public class AlgorithmQueueService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AlgorithmService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AlgorithmQueueService.class);
 
     private final JobQueueInfoService jobQueueInfoService;
 
     @Autowired(required = true)
-    public AlgorithmService(JobQueueInfoService queuedJobInfoService) {
+    public AlgorithmQueueService(JobQueueInfoService queuedJobInfoService) {
         this.jobQueueInfoService = queuedJobInfoService;
     }
 
