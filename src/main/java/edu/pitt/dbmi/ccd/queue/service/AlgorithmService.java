@@ -56,48 +56,8 @@ public class AlgorithmService {
     }
 
     @Async
-    public Future<Void> runAlgorithm(List<String> commands, String fileName, String tmpDirectory, String outputDirectory) {
-        commands.add("--out");
-        commands.add(tmpDirectory);
-
-        fileName = String.format("%s.txt", fileName);
-        String errorFileName = String.format("error_%s", fileName);
-        Path error = Paths.get(tmpDirectory, errorFileName);
-        Path errorDest = Paths.get(outputDirectory, errorFileName);
-        Path src = Paths.get(tmpDirectory, fileName);
-        Path dest = Paths.get(outputDirectory, fileName);
-
-        StringBuilder sb = new StringBuilder();
-        commands.forEach(cmd -> {
-            sb.append(cmd);
-            sb.append(" ");
-        });
-        LOGGER.info("Algorithm command: " + sb.toString());
-
-        try {
-            ProcessBuilder pb = new ProcessBuilder(commands);
-            pb.redirectError(error.toFile());
-            Process process = pb.start();
-            process.waitFor();
-
-            if (process.exitValue() == 0) {
-                Files.move(src, dest, StandardCopyOption.REPLACE_EXISTING);
-                Files.deleteIfExists(error);
-            } else {
-                Files.deleteIfExists(src);
-                Files.move(error, errorDest, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } catch (IOException | InterruptedException exception) {
-            LOGGER.error("Algorithm did not run successfully.", exception);
-        }
-
-        return new AsyncResult<>(null);
-    }
-
-    @Async
     public Future<Void> runAlgorithmFromQueue(JobQueueInfo jobQueueInfo) {
         Long queueId = jobQueueInfo.getId();
-        String algorName = jobQueueInfo.getAlgorName();
         String fileName = jobQueueInfo.getFileName() + ".txt";
         String commands = jobQueueInfo.getCommands();
         String tmpDirectory = jobQueueInfo.getTmpDirectory();
@@ -124,60 +84,6 @@ public class AlgorithmService {
 
         try {
             ProcessBuilder pb = new ProcessBuilder(cmdList);
-            pb.redirectError(error.toFile());
-            Process process = pb.start();
-
-            //Get process Id
-            Long pid = Processes.processId(process);
-            JobQueueInfo queuedJobInfo = jobQueueInfoService.findOne(queueId);
-            LOGGER.info("Set Job's pid to be: " + pid);
-            queuedJobInfo.setPid(pid);
-            jobQueueInfoService.saveJobIntoQueue(queuedJobInfo);
-
-            process.waitFor();
-
-            if (process.exitValue() == 0) {
-                Files.move(src, dest, StandardCopyOption.REPLACE_EXISTING);
-                Files.deleteIfExists(error);
-            } else {
-                Files.deleteIfExists(src);
-                Files.move(error, errorDest, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } catch (IOException | InterruptedException exception) {
-            LOGGER.error("Algorithm did not run successfully.", exception);
-        }
-
-        LOGGER.info("Delete Job ID from queue: " + queueId);
-        jobQueueInfoService.deleteJobById(queueId);
-
-        return new AsyncResult<>(null);
-    }
-
-    @Async
-    public Future<Void> runAlgorithmFromQueue(Long queueId, String command, String fileName, String tmpDirectory, String outputDirectory) {
-        List<String> commands = new LinkedList<>();
-
-        commands.addAll(Arrays.asList(command.split(";")));
-
-        commands.add("--out");
-        commands.add(tmpDirectory);
-
-        fileName = String.format("%s.txt", fileName);
-        String errorFileName = String.format("error_%s", fileName);
-        Path error = Paths.get(tmpDirectory, errorFileName);
-        Path errorDest = Paths.get(outputDirectory, errorFileName);
-        Path src = Paths.get(tmpDirectory, fileName);
-        Path dest = Paths.get(outputDirectory, fileName);
-
-        StringBuilder sb = new StringBuilder();
-        commands.forEach(cmd -> {
-            sb.append(cmd);
-            sb.append(" ");
-        });
-        LOGGER.info("Algorithm command: " + sb.toString());
-
-        try {
-            ProcessBuilder pb = new ProcessBuilder(commands);
             pb.redirectError(error.toFile());
             Process process = pb.start();
 
