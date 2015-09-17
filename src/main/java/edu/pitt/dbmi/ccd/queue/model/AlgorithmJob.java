@@ -28,18 +28,18 @@ package edu.pitt.dbmi.ccd.queue.model;
 public class AlgorithmJob {
 
     private Long id;
+
     private String algorName;
+
     private String fileName;
+
     private String status;
+
     private String addedTime;
 
-    /**
-     * @param id
-     * @param algorName
-     * @param fileName
-     * @param status
-     * @param addedTime
-     */
+    public AlgorithmJob() {
+    }
+
     public AlgorithmJob(Long id, String algorName, String fileName, String status, String addedTime) {
         this.id = id;
         this.algorName = algorName;
@@ -52,7 +52,7 @@ public class AlgorithmJob {
         return id;
     }
 
-    public void setPid(Long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
