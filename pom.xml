@@ -4,7 +4,7 @@
 
     <groupId>edu.pitt.dbmi</groupId>
     <artifactId>ccd-job-queue</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <name>CCD Desktop Job Queue</name>
     <description>Center for Causal Discovery Desktop-version Job Queue Manager Application</description>
 
@@ -26,13 +26,13 @@
         <dependency>
             <groupId>edu.pitt.dbmi</groupId>
             <artifactId>ccd-db</artifactId>
-            <version>0.5.0</version>
+            <version>0.5.1</version>
         </dependency>
 
         <dependency>
             <groupId>edu.pitt.dbmi</groupId>
             <artifactId>ccd-commons</artifactId>
-            <version>0.1</version>
+            <version>0.2.0</version>
         </dependency>
 
         <dependency>
