@@ -24,7 +24,6 @@ import edu.pitt.dbmi.ccd.db.entity.JobQueueInfo;
 import edu.pitt.dbmi.ccd.db.service.JobQueueInfoService;
 import edu.pitt.dbmi.ccd.queue.service.AlgorithmQueueService;
 import java.io.IOException;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -67,8 +66,6 @@ public class ScheduledAlgorithJob {
 
     @Scheduled(fixedRate = 5000)
     public void executeJobInQueue() {
-        System.out.println(new Date(System.currentTimeMillis()));
-
         Platform platform = Platform.detect();
         List<JobQueueInfo> jobsToSave = new LinkedList<>();
         List<JobQueueInfo> runningJobList = jobQueueInfoService.findByStatus(1);
