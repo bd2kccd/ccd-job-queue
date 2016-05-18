@@ -18,9 +18,12 @@
  */
 package edu.pitt.dbmi.ccd.queue.util;
 
-import edu.pitt.dbmi.ccd.commons.file.FilePrint;
 import edu.pitt.dbmi.ccd.db.entity.JobQueueInfo;
 import edu.pitt.dbmi.ccd.queue.model.AlgorithmJob;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  *
@@ -31,10 +34,28 @@ import edu.pitt.dbmi.ccd.queue.model.AlgorithmJob;
  */
 public class JobQueueUtility {
 
+    public static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm:ss");
+
     public static AlgorithmJob convertJobEntity2JobModel(JobQueueInfo job) {
-        return new AlgorithmJob(job.getId(), job.getAlgorName(), job.getFileName(),
-                (job.getStatus() == 0 ? "Queued" : (job.getStatus() == 1 ? "Running" : "Kill Request")),
-                FilePrint.fileTimestamp(job.getAddedTime().getTime()));
+        long addedJobTime = job.getAddedTime().getTime();
+        String addedTime = TIME_FORMATTER.format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(addedJobTime), ZoneId.systemDefault()));
+
+        String status;
+        switch (job.getStatus()) {
+            case 0:
+                status = "Queued";
+                break;
+            case 1:
+                status = "Running";
+                break;
+            case 2:
+                status = "Kill Request";
+                break;
+            default:
+                status = "Unknown Status";
+        }
+
+        return new AlgorithmJob(job.getId(), job.getAlgorName(), job.getFileName(), status, addedTime);
     }
 
 }
