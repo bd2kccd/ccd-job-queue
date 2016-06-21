@@ -38,6 +38,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 
 import edu.pitt.dbmi.ccd.connection.SlurmClient;
+import edu.pitt.dbmi.ccd.connection.slurm.JobStat;
 import edu.pitt.dbmi.ccd.connection.slurm.JobStatus;
 import edu.pitt.dbmi.ccd.db.entity.JobQueueInfo;
 import edu.pitt.dbmi.ccd.db.entity.UserAccount;
@@ -114,20 +115,45 @@ public class AlgorithmSlurmService {
 		this.checkUserDirScript = checkUserDirScript;
 		this.runSlurmJobScript = runSlurmJobScript;
 	}
-
-	public List<JobStatus> getFinishedJobs() {
-		List<JobStatus> finishedJobs = null;
+	
+	public JobStat getJobStat(Long jobId){
+		JobStat stat = null;
 		try {
-			finishedJobs = client.getFinishedJobs();
+			stat = client.getJobStat(jobId);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return finishedJobs;
+		return stat;
+	}
+
+	public List<JobStatus> getFinishedJobs() {
+		List<JobStatus> jobs = null;
+		try {
+			jobs = client.getFinishedJobs();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return jobs;
+	}
+	
+	private void deleteRunSlurmScript(JobQueueInfo jobQueueInfo){
+		Long queueId = jobQueueInfo.getId();
+		Set<UserAccount> userAccounts = jobQueueInfo.getUserAccounts();
+		UserAccount userAccount = (UserAccount) userAccounts.toArray()[0];
+		String username = userAccount.getUsername();
+		
+		Path scriptPath = Paths.get(remoteworkspace, username, runSlurmJobScript);
+		String scriptDir = scriptPath.toAbsolutePath().toString() + queueId  + ".sh";
+		if(client.remoteFileExisted(scriptDir)){
+			client.deleteRemoteFile(scriptDir);
+		}
 	}
 	
 	@Async
-	public Future<Void> cancelSlurmJob(Long jobId){
+	public Future<Void> cancelSlurmJob(JobQueueInfo jobQueueInfo){
+		Long jobId = jobQueueInfo.getPid();
 		
 		try {
 			client.cancelJob(jobId);
@@ -136,11 +162,13 @@ public class AlgorithmSlurmService {
 			e.printStackTrace();
 		}
 		
+		deleteRunSlurmScript(jobQueueInfo);
+		
 		return new AsyncResult<>(null);
 	}
 	
-	@Async
-	public Future<Void> downloadJobResult(JobQueueInfo jobQueueInfo, JobStatus jobStatus) {
+	//@Async
+	public Future<Void> downloadJobResult(JobQueueInfo jobQueueInfo) {
 		String fileName = jobQueueInfo.getFileName() + ".txt";
 		String tmpDirectory = jobQueueInfo.getTmpDirectory();
 		String outputDirectory = jobQueueInfo.getOutputDirectory();
@@ -152,34 +180,26 @@ public class AlgorithmSlurmService {
 		Path error = Paths.get(tmpDirectory, errorFileName);
 		Path errorDest = Paths.get(outputDirectory, errorFileName);
 
-		if(jobStatus.getState().equalsIgnoreCase("COMPLETED")){			
-
-			try {
-				if(client.remoteFileExisted(src.toAbsolutePath().toString())){
-					client.downloadOutput(src.toAbsolutePath().toString(), dest.toAbsolutePath().toString());
-				}else{
-					client.downloadOutput(error.toAbsolutePath().toString(), errorDest.toAbsolutePath().toString());
-				}
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-		}else {
-			
-			try {
-				client.downloadOutput(error.toAbsolutePath().toString(), errorDest.toAbsolutePath().toString());
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-		}
+		try {
+			if(client.remoteFileExisted(src.toAbsolutePath().toString())){
+				client.downloadOutput(src.toAbsolutePath().toString(), dest.toAbsolutePath().toString());
+				client.deleteRemoteFile(src.toAbsolutePath().toString());
 				
+			}else{
+				client.downloadOutput(error.toAbsolutePath().toString(), errorDest.toAbsolutePath().toString());
+			}
+			client.deleteRemoteFile(error.toAbsolutePath().toString());
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		deleteRunSlurmScript(jobQueueInfo);
+		
 		return new AsyncResult<>(null);
 	}
 	
-	@Async
+	//@Async
 	public Future<Void> submitJobtoSlurm(JobQueueInfo jobQueueInfo) {
 		Long queueId = jobQueueInfo.getId();
 		String fileName = jobQueueInfo.getFileName() + ".txt";
@@ -190,9 +210,6 @@ public class AlgorithmSlurmService {
 		
 		// Upload dataset(s) to the remote data storage
 		Set<UserAccount> userAccounts = jobQueueInfo.getUserAccounts();
-		if(userAccounts.isEmpty()){
-			LOGGER.error("userAccounts set is empty");
-		}
 		UserAccount userAccount = (UserAccount) userAccounts.toArray()[0];
 		String username = userAccount.getUsername();
 		
@@ -227,11 +244,13 @@ public class AlgorithmSlurmService {
 			//The dataset's source path
 			dataPath = Paths.get(workspace, username, dataFolder, dataFile);
 			Path scriptPath = Paths.get(remoteworkspace, checkUserDirScript);
-			
+			String scriptDir = scriptPath.toAbsolutePath().toString() + username + ".sh";
+			LOGGER.info("submitJobtoSlurm: checkUserDirScript: " + scriptDir);
 			try {
 				client.uploadDataset(
 						checkUserDirTemplateDir, 
-						p,scriptPath.toAbsolutePath().toString(),
+						p,
+						scriptDir,
 						dataPath.toAbsolutePath().toString(), 
 						dataset);
 			} catch (Exception e) {
@@ -264,9 +283,12 @@ public class AlgorithmSlurmService {
 			p.setProperty("cmd", sb.toString());
 			Path causalJobTemplate = Paths.get(workspace,jobTemplates,causalJob);
 			String causalJobTemplateDir = causalJobTemplate.toAbsolutePath().toString();
-			Path scriptPath = Paths.get(remoteworkspace, runSlurmJobScript);
+			Path scriptPath = Paths.get(remoteworkspace, username, runSlurmJobScript);
+			String scriptDir = scriptPath.toAbsolutePath().toString() + queueId  + ".sh";
+			LOGGER.info("submitJobtoSlurm: runSlurmJobScript: " + scriptDir);
 			long pid = client.submitJob(
-					causalJobTemplateDir, p, scriptPath.toAbsolutePath().toString());
+					causalJobTemplateDir, p, 
+					scriptDir);
 			
 			JobQueueInfo queuedJobInfo = jobQueueInfoService.findOne(queueId);
 			LOGGER.info("Set Job's pid to be: " + pid);

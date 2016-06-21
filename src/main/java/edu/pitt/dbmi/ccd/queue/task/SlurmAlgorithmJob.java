@@ -18,11 +18,10 @@
  */
 package edu.pitt.dbmi.ccd.queue.task;
 
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,10 +32,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import de.flapdoodle.embed.process.distribution.Platform;
-import de.flapdoodle.embed.process.runtime.Processes;
+import edu.pitt.dbmi.ccd.connection.slurm.JobStat;
 import edu.pitt.dbmi.ccd.connection.slurm.JobStatus;
 import edu.pitt.dbmi.ccd.db.entity.JobQueueInfo;
+import edu.pitt.dbmi.ccd.db.entity.UserAccount;
 import edu.pitt.dbmi.ccd.db.service.JobQueueInfoService;
 import edu.pitt.dbmi.ccd.queue.service.AlgorithmSlurmService;
 
@@ -61,36 +60,57 @@ public class SlurmAlgorithmJob {
 	private final AlgorithmSlurmService algorithmSlurmService;
 
 	@Autowired(required = true)
-	public SlurmAlgorithmJob(@Value("${ccd.queue.size:100}") int queueSize, 
+	public SlurmAlgorithmJob(@Value("${ccd.queue.size:5}") int queueSize, 
 			JobQueueInfoService jobQueueInfoService,
 			AlgorithmSlurmService algorithmQueueService) {
 		this.queueSize = queueSize;
 		this.jobQueueInfoService = jobQueueInfoService;
 		this.algorithmSlurmService = algorithmQueueService;
 	}
-
-	@Scheduled(fixedRate = 50000)
+	
+	@Scheduled(fixedRate = 5000)
 	public void manageJobsInQueue() {
 		List<JobStatus> finishedJobList = algorithmSlurmService.getFinishedJobs();
 		Map<Long, JobStatus> finishedJobMap = new HashMap<>();
-		if(!finishedJobList.isEmpty()){
+		if(finishedJobList != null && !finishedJobList.isEmpty()){
 			finishedJobList.forEach(jobStatus -> {
 				finishedJobMap.put(new Long(jobStatus.getJobId()), jobStatus);
 			});	
 		}
 
 		int numRunningJobs = 0;
+
 		List<JobQueueInfo> runningJobList = jobQueueInfoService.findByStatus(1);
 		for(JobQueueInfo job : runningJobList){
 			Long pid = job.getPid();
 			if (pid != null && finishedJobMap.containsKey(pid)) {
-				Long queueId = job.getId();
-				jobQueueInfoService.deleteJobById(queueId);
-				JobStatus jobStatus = finishedJobMap.get(pid);
-				
-				algorithmSlurmService.downloadJobResult(job, jobStatus);
-			}else if (pid != null) {
-				numRunningJobs++;
+				if(finishedJobMap.containsKey(pid)){
+					Long queueId = job.getId();
+					jobQueueInfoService.deleteJobById(queueId);
+
+					JobStatus status = finishedJobMap.get(pid);
+					JobStat stat = algorithmSlurmService.getJobStat(pid);
+					Set<UserAccount> userAccounts = job.getUserAccounts();
+					UserAccount userAccount = 
+							(UserAccount) userAccounts.toArray()[0];
+					String username = userAccount.getUsername();
+					LOGGER.info("JobUsage{"
+							+ "JobId=" + queueId + ", "
+							+ "HPCjobId=" + pid + ", "
+							+ "User='" + username  + "', "
+							+ "State='" + status.getState() +  "', "
+							+ "Elapsed='" + status.getTime() + "', "
+							+ "Start='" + stat.getStart() + "', "
+							+ "End='" + stat.getEnd() + "', "
+							+ "Partition='" + status.getPartition() + "', "
+							+ "AllocCPUS=" + stat.getAllocCPUS() + ", "
+							+ "AllocNodes=" + stat.getAllocNodes() + ", "
+							+ "NodeList='" + status.getNodelist() + "'}");
+					
+					algorithmSlurmService.downloadJobResult(job);
+				}else{
+					numRunningJobs++;
+				}
 			}
 		}
 
@@ -119,7 +139,7 @@ public class SlurmAlgorithmJob {
 		jobList.forEach(job -> {
 			killJob(job.getId());
 		});
-
+		
 	}
 
 	private void killJob(Long queueId) {
@@ -136,7 +156,7 @@ public class SlurmAlgorithmJob {
 				LOGGER.info("Delete Job ID by user from queue: " + queueId);
 				jobQueueInfoService.deleteJobById(queueId);
 				
-				algorithmSlurmService.cancelSlurmJob(pid);
+				algorithmSlurmService.cancelSlurmJob(jobQueueInfo);
 				
 			}
 		}
