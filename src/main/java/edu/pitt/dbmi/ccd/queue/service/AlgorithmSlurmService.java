@@ -167,7 +167,6 @@ public class AlgorithmSlurmService {
 		return new AsyncResult<>(null);
 	}
 	
-	//@Async
 	public Future<Void> downloadJobResult(JobQueueInfo jobQueueInfo) {
 		String fileName = jobQueueInfo.getFileName() + ".txt";
 		String tmpDirectory = jobQueueInfo.getTmpDirectory();
@@ -199,7 +198,6 @@ public class AlgorithmSlurmService {
 		return new AsyncResult<>(null);
 	}
 	
-	//@Async
 	public Future<Void> submitJobtoSlurm(JobQueueInfo jobQueueInfo) {
 		Long queueId = jobQueueInfo.getId();
 		String fileName = jobQueueInfo.getFileName() + ".txt";
