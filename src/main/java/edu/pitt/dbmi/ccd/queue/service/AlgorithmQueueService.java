@@ -63,6 +63,7 @@ public class AlgorithmQueueService {
     public Future<Void> runAlgorithmFromQueue(JobQueueInfo jobQueueInfo) {
         Long queueId = jobQueueInfo.getId();
         String fileName = jobQueueInfo.getFileName() + ".txt";
+        String jsonFileName = jobQueueInfo.getFileName() + ".json";
         String commands = jobQueueInfo.getCommands();
         String tmpDirectory = jobQueueInfo.getTmpDirectory();
         String outputDirectory = jobQueueInfo.getOutputDirectory();
@@ -85,6 +86,8 @@ public class AlgorithmQueueService {
         Path errorDest = Paths.get(outputDirectory, errorFileName);
         Path src = Paths.get(tmpDirectory, fileName);
         Path dest = Paths.get(outputDirectory, fileName);
+        Path json = Paths.get(tmpDirectory, fileName);
+        Path jsonDest = Paths.get(outputDirectory, fileName);
 
         try {
             ProcessBuilder pb = new ProcessBuilder(cmdList);
@@ -102,6 +105,7 @@ public class AlgorithmQueueService {
 
             if (process.exitValue() == 0) {
                 Files.move(src, dest, StandardCopyOption.REPLACE_EXISTING);
+                Files.move(json, jsonDest, StandardCopyOption.REPLACE_EXISTING);
                 Files.deleteIfExists(error);
             } else {
                 Files.deleteIfExists(src);
