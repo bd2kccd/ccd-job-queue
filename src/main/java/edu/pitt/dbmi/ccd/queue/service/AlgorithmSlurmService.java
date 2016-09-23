@@ -146,7 +146,7 @@ public class AlgorithmSlurmService {
 		
 		Path scriptPath = Paths.get(remoteworkspace, username, runSlurmJobScript);
 		String scriptDir = scriptPath.toAbsolutePath().toString() + queueId  + ".sh";
-		if(client.remoteFileExisted(scriptDir)){
+		if(client.remoteFileExistes(scriptDir)){
 			client.deleteRemoteFile(scriptDir);
 		}
 	}
@@ -175,19 +175,28 @@ public class AlgorithmSlurmService {
 		Path src = Paths.get(tmpDirectory, fileName);
 		Path dest = Paths.get(outputDirectory, fileName);
 
+		String jsonFileName = jobQueueInfo.getFileName() + ".json";
+		Path json = Paths.get(tmpDirectory, jsonFileName);
+		Path jsonDest = Paths.get(outputDirectory, jsonFileName);
+
+		
 		String errorFileName = String.format("error_%s", fileName);
 		Path error = Paths.get(tmpDirectory, errorFileName);
 		Path errorDest = Paths.get(outputDirectory, errorFileName);
 
 		try {
-			if(client.remoteFileExisted(src.toAbsolutePath().toString())){
+			if(client.remoteFileExistes(src.toAbsolutePath().toString())){
 				client.downloadOutput(src.toAbsolutePath().toString(), dest.toAbsolutePath().toString());
-				client.deleteRemoteFile(src.toAbsolutePath().toString());
-				
-			}else{
-				client.downloadOutput(error.toAbsolutePath().toString(), errorDest.toAbsolutePath().toString());
+				client.deleteRemoteFile(src.toAbsolutePath().toString());	
 			}
-			client.deleteRemoteFile(error.toAbsolutePath().toString());
+			if(client.remoteFileExistes(json.toAbsolutePath().toString())){
+				client.downloadOutput(json.toAbsolutePath().toString(), jsonDest.toAbsolutePath().toString());
+				client.deleteRemoteFile(json.toAbsolutePath().toString());				
+			}
+			if(client.remoteFileExistes(error.toAbsolutePath().toString())){
+				client.downloadOutput(error.toAbsolutePath().toString(), errorDest.toAbsolutePath().toString());
+				client.deleteRemoteFile(error.toAbsolutePath().toString());	
+			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
