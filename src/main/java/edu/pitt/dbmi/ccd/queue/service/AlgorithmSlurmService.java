@@ -185,18 +185,23 @@ public class AlgorithmSlurmService {
 		Path errorDest = Paths.get(outputDirectory, errorFileName);
 
 		try {
+			LOGGER.info("Checking File: " + src.toAbsolutePath().toString());
 			if(client.remoteFileExistes(src.toAbsolutePath().toString())){
+				LOGGER.info("Downloading File: " + src.toAbsolutePath().toString());
 				client.downloadOutput(src.toAbsolutePath().toString(), dest.toAbsolutePath().toString());
 				client.deleteRemoteFile(src.toAbsolutePath().toString());	
-			}
-			if(client.remoteFileExistes(json.toAbsolutePath().toString())){
-				client.downloadOutput(json.toAbsolutePath().toString(), jsonDest.toAbsolutePath().toString());
-				client.deleteRemoteFile(json.toAbsolutePath().toString());				
-			}
-			if(client.remoteFileExistes(error.toAbsolutePath().toString())){
+
+				LOGGER.info("Checking File: " + json.toAbsolutePath().toString());
+				if(client.remoteFileExistes(json.toAbsolutePath().toString())){
+					LOGGER.info("Downloading File: " + json.toAbsolutePath().toString());
+					client.downloadOutput(json.toAbsolutePath().toString(), jsonDest.toAbsolutePath().toString());
+					client.deleteRemoteFile(json.toAbsolutePath().toString());				
+				}
+			}else if(client.remoteFileExistes(error.toAbsolutePath().toString())){
+				LOGGER.info("Downloading File: " + error.toAbsolutePath().toString());
 				client.downloadOutput(error.toAbsolutePath().toString(), errorDest.toAbsolutePath().toString());
-				client.deleteRemoteFile(error.toAbsolutePath().toString());	
 			}
+			client.deleteRemoteFile(error.toAbsolutePath().toString());	
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -254,7 +259,7 @@ public class AlgorithmSlurmService {
 			String scriptDir = scriptPath.toAbsolutePath().toString() + username + ".sh";
 			LOGGER.info("submitJobtoSlurm: checkUserDirScript: " + scriptDir);
 			try {
-				client.uploadDataset(
+				client.uploadFile(
 						checkUserDirTemplateDir, 
 						p,
 						scriptDir,
@@ -266,6 +271,42 @@ public class AlgorithmSlurmService {
 			}
 		});
 
+		String knowledges = null;
+		for(int i=0;i<cmdList.size();i++){
+			String cmd = cmdList.get(i);
+			if(cmd.equalsIgnoreCase("--knowledge")){
+				knowledges = cmdList.get(i+1);
+				break;
+			}
+		}
+		
+		if(knowledges != null){
+			List<String> knowledgeList = new LinkedList<>();
+			knowledgeList.addAll(Arrays.asList(knowledges.split(",")));
+			knowledgeList.forEach(knowledge ->{
+				// Extract fileName from the knowledge path
+				Path knowledgePath = Paths.get(remotedataspace, username, dataFolder);
+				String knowledgeFile = knowledge.replace(knowledgePath.toAbsolutePath().toString(), "");
+				
+				//The knowledge's source path
+				knowledgePath = Paths.get(workspace, username, dataFolder, knowledgeFile);
+				Path scriptPath = Paths.get(remoteworkspace, checkUserDirScript);
+				String scriptDir = scriptPath.toAbsolutePath().toString() + username + ".sh";
+				LOGGER.info("submitJobtoSlurm: checkUserDirScript: " + scriptDir);
+				try {
+					client.uploadFile(
+							checkUserDirTemplateDir, 
+							p,
+							scriptDir,
+							knowledgePath.toAbsolutePath().toString(), 
+							knowledge);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			});
+		}
+		
 		cmdList.add("--out");
 		cmdList.add(tmpDirectory);
 
