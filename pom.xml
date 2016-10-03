@@ -1,53 +1,44 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-	<groupId>edu.pitt.dbmi</groupId>
-	<artifactId>ccd-job-queue</artifactId>
-	<version>0.1.4</version>
-	<name>ccd-job-queue</name>
-	<description>Center for Causal Discovery Desktop-version Job Queue Manager Application</description>
+    <groupId>edu.pitt.dbmi</groupId>
+    <artifactId>ccd-job-queue</artifactId>
+    <version>0.1.5</version>
+    <name>ccd-job-queue</name>
+    <description>Center for Causal Discovery Desktop-version Job Queue Manager Application</description>
 
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>1.3.5.RELEASE</version>
-		<relativePath /> <!-- lookup parent from repository -->
-	</parent>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>1.4.1.RELEASE</version>
+        <relativePath /> <!-- lookup parent from repository -->
+    </parent>
 
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<java.version>1.8</java.version>
-		<maven.compiler.source>1.8</maven.compiler.source>
-		<maven.compiler.target>1.8</maven.compiler.target>
-	</properties>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>1.8</java.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
 
-	<dependencies>
-		<dependency>
-			<groupId>edu.pitt.dbmi</groupId>
-			<artifactId>ccd-db</artifactId>
-			<version>0.6.1</version>
-		</dependency>
-		<dependency>
-			<groupId>de.flapdoodle.embed</groupId>
-			<artifactId>de.flapdoodle.embed.process</artifactId>
-			<version>1.41.2</version>
-		</dependency>
+    <dependencies>
+        <dependency>
+            <groupId>edu.pitt.dbmi</groupId>
+            <artifactId>ccd-db</artifactId>
+            <version>0.6.2</version>
+        </dependency>
+        <dependency>
+            <groupId>de.flapdoodle.embed</groupId>
+            <artifactId>de.flapdoodle.embed.process</artifactId>
+            <version>1.41.2</version>
+        </dependency>
 
-		<dependency>
-			<groupId>edu.pitt.dbmi.isg</groupId>
-			<artifactId>remoteSchedulerClient</artifactId>
-			<version>1.0-SNAPSHOT</version>
-		</dependency>
-	</dependencies>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-		</plugins>
-	</build>
+        <dependency>
+            <groupId>edu.pitt.dbmi.isg</groupId>
+            <artifactId>remoteSchedulerClient</artifactId>
+            <version>0.1.1</version>
+        </dependency>
+    </dependencies>
 
 </project>
