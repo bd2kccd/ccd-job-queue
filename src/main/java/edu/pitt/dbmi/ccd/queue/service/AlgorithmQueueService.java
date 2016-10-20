@@ -21,6 +21,7 @@ package edu.pitt.dbmi.ccd.queue.service;
 import de.flapdoodle.embed.process.runtime.Processes;
 import edu.pitt.dbmi.ccd.db.entity.JobQueueInfo;
 import edu.pitt.dbmi.ccd.db.service.JobQueueInfoService;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +31,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Future;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,8 +88,8 @@ public class AlgorithmQueueService {
         Path errorDest = Paths.get(outputDirectory, errorFileName);
         Path src = Paths.get(tmpDirectory, fileName);
         Path dest = Paths.get(outputDirectory, fileName);
-        Path json = Paths.get(tmpDirectory, fileName);
-        Path jsonDest = Paths.get(outputDirectory, fileName);
+        Path json = Paths.get(tmpDirectory, jsonFileName);
+        Path jsonDest = Paths.get(outputDirectory, jsonFileName);
 
         try {
             ProcessBuilder pb = new ProcessBuilder(cmdList);
@@ -104,16 +106,16 @@ public class AlgorithmQueueService {
             process.waitFor();
 
             if (process.exitValue() == 0) {
-                LOGGER.info(String.format("Moving txt file %s to %s", src, dest));
-                Files.move(src, dest, StandardCopyOption.REPLACE_EXISTING);
-                LOGGER.info(String.format("Moving json file %s to %s", json, dest));
-                Files.move(json, jsonDest, StandardCopyOption.REPLACE_EXISTING);
+		LOGGER.info(String.format("Moving txt file %s to %s", src, dest));
+		Files.move(src, dest, StandardCopyOption.REPLACE_EXISTING);
+		LOGGER.info(String.format("Moving json file %s to %s", json, dest));
+		Files.move(json, jsonDest, StandardCopyOption.REPLACE_EXISTING);
                 Files.deleteIfExists(error);
             } else {
-                LOGGER.info(String.format("Deleting tmp txt file %s", src));
-                Files.deleteIfExists(src);
-                LOGGER.info(String.format("Moving error file %s to %s", error, errorDest));
-                Files.move(error, errorDest, StandardCopyOption.REPLACE_EXISTING);
+		LOGGER.info(String.format("Deleting tmp txt file %s", src));
+		Files.deleteIfExists(src);
+		LOGGER.info(String.format("Moving error file %s to %s", error, errorDest));
+		Files.move(error, errorDest, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException | InterruptedException exception) {
             LOGGER.error("Algorithm did not run successfully.", exception);
