@@ -1,4 +1,5 @@
 package edu.pitt.dbmi.ccd.queue;
+
 /*
  * Copyright (C) 2015 University of Pittsburgh.
  *
@@ -17,7 +18,6 @@ package edu.pitt.dbmi.ccd.queue;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-
 import edu.pitt.dbmi.ccd.db.CCDDatabaseApplication;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
