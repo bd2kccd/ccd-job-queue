@@ -21,6 +21,7 @@ package edu.pitt.dbmi.ccd.queue.service;
 import edu.pitt.dbmi.ccd.connection.SlurmClient;
 import edu.pitt.dbmi.ccd.connection.slurm.JobStat;
 import edu.pitt.dbmi.ccd.connection.slurm.JobStatus;
+import edu.pitt.dbmi.ccd.db.entity.HpcParameter;
 import edu.pitt.dbmi.ccd.db.entity.JobQueueInfo;
 import edu.pitt.dbmi.ccd.db.entity.UserAccount;
 import edu.pitt.dbmi.ccd.db.service.JobQueueInfoService;
@@ -83,6 +84,10 @@ public class AlgorithmSlurmService {
     private final String checkUserDirScript;
 
     private final String runSlurmJobScript;
+    
+    private final String hpcPartition;
+    
+    private final int hpcWallTime;
 
     @Autowired(required = true)
     public AlgorithmSlurmService(@Value("${ccd.server.workspace}") String workspace,
@@ -97,6 +102,8 @@ public class AlgorithmSlurmService {
             @Value("${ccd.remote.server.workspace}") String remoteworkspace,
             @Value("${ccd.script.checkuserdir:checkUserDir.sh}") String checkUserDirScript,
             @Value("${ccd.script.runslurmjob:runSlurmJobScript.sh}") String runSlurmJobScript,
+            @Value("${ccd.hpc.partition:RM}") String hpcPartition,
+            @Value("${ccd.hpc.wall.time:1") int hpcWallTime,
             JobQueueInfoService queuedJobInfoService) {
         this.jobQueueInfoService = queuedJobInfoService;
         this.client = new SlurmClient();
@@ -112,6 +119,8 @@ public class AlgorithmSlurmService {
         this.remoteworkspace = remoteworkspace;
         this.checkUserDirScript = checkUserDirScript;
         this.runSlurmJobScript = runSlurmJobScript;
+        this.hpcPartition = hpcPartition;
+        this.hpcWallTime = hpcWallTime;
     }
 
     public JobStat getJobStat(Long jobId) {
@@ -229,6 +238,27 @@ public class AlgorithmSlurmService {
         p.setProperty("tmp", tempFolder);
         p.setProperty("results", resultFolder);
         p.setProperty("algorithm", algorithmResultFolder);
+        
+        String partition = hpcPartition;
+        int walltime = hpcWallTime;
+        
+        Set<HpcParameter> hpcParameters = jobQueueInfo.getHpcParameters();
+        if(hpcParameters != null && !hpcParameters.isEmpty()){
+        	for(HpcParameter param : hpcParameters){
+        		if(param.getKey().equalsIgnoreCase("partition")){
+        			partition = param.getValue().toString();
+        		}
+        		String key = param.getKey();
+        		String value = param.getValue().toString();
+        		switch(key){
+	        		case "partition": partition = value;break;
+	        		case "walltime": walltime = Integer.parseInt(value);break;
+        		}
+        	}	
+        }
+        
+        p.setProperty("partition", partition);
+        p.setProperty("walltime", String.format("%02d:00:00",walltime));
 
         List<String> cmdList = new LinkedList<>();
         cmdList.addAll(Arrays.asList(commands.split(";")));
