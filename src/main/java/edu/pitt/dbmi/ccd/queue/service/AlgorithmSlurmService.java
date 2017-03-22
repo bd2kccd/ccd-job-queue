@@ -103,7 +103,7 @@ public class AlgorithmSlurmService {
             @Value("${ccd.script.checkuserdir:checkUserDir.sh}") String checkUserDirScript,
             @Value("${ccd.script.runslurmjob:runSlurmJobScript.sh}") String runSlurmJobScript,
             @Value("${ccd.hpc.partition:RM}") String hpcPartition,
-            @Value("${ccd.hpc.wall.time:1") int hpcWallTime,
+            @Value("${ccd.hpc.wall.time:1}") int hpcWallTime,
             JobQueueInfoService queuedJobInfoService) {
         this.jobQueueInfoService = queuedJobInfoService;
         this.client = new SlurmClient();
