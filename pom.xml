@@ -4,7 +4,7 @@
 
     <groupId>edu.pitt.dbmi</groupId>
     <artifactId>ccd-job-queue</artifactId>
-    <version>0.1.7</version>
+    <version>0.2.0</version>
     <name>ccd-job-queue</name>
     <description>Center for Causal Discovery Desktop-version Job Queue Manager Application</description>
 
