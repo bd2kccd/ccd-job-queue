@@ -4,7 +4,7 @@
 
     <groupId>edu.pitt.dbmi</groupId>
     <artifactId>ccd-job-queue</artifactId>
-    <version>0.1.8-SNAPSHOT</version>
+    <version>0.1.9-SNAPSHOT</version>
     <name>ccd-job-queue</name>
     <description>Center for Causal Discovery Desktop-version Job Queue Manager Application</description>
 
@@ -21,6 +21,17 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>ccd-releases</id>
+            <url>https://cloud.ccd.pitt.edu/nexus/content/repositories/releases/</url>
+        </repository>
+        <repository>
+            <id>ccd-snapshots</id>
+            <url>https://cloud.ccd.pitt.edu/nexus/content/repositories/snapshots/</url>
+        </repository>
+    </repositories>
 
     <distributionManagement>
         <repository>
