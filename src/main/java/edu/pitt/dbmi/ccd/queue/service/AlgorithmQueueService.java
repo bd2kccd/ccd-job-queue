@@ -62,8 +62,7 @@ public class AlgorithmQueueService {
     @Async
     public Future<Void> runAlgorithmFromQueue(JobQueueInfo jobQueueInfo) {
         Long queueId = jobQueueInfo.getId();
-        String fileName = jobQueueInfo.getFileName() + ".txt";
-        String jsonFileName = jobQueueInfo.getFileName() + ".json";
+        String fileName = jobQueueInfo.getFileName();
         String commands = jobQueueInfo.getCommands();
         String tmpDirectory = jobQueueInfo.getTmpDirectory();
         String outputDirectory = jobQueueInfo.getOutputDirectory();
@@ -81,17 +80,24 @@ public class AlgorithmQueueService {
         });
         LOGGER.info("Algorithm command: " + sb.toString());
 
-        String errorFileName = String.format("error_%s", fileName);
-        Path error = Paths.get(tmpDirectory, errorFileName);
-        Path errorDest = Paths.get(outputDirectory, errorFileName);
-        Path src = Paths.get(tmpDirectory, fileName);
-        Path dest = Paths.get(outputDirectory, fileName);
-        Path json = Paths.get(tmpDirectory, jsonFileName);
-        Path jsonDest = Paths.get(outputDirectory, jsonFileName);
+        String errorFileName = fileName + "_error.txt";
+        String infoFileName = fileName + ".txt";
+        String graphFileName = fileName + "_graph.txt";
+        String jsonFileName = fileName + ".json";
+
+        Path srcErr = Paths.get(tmpDirectory, errorFileName);
+        Path srcInfoFile = Paths.get(tmpDirectory, infoFileName);
+        Path srcGraphFile = Paths.get(tmpDirectory, graphFileName);
+        Path srcJson = Paths.get(tmpDirectory, jsonFileName);
+
+        Path destErr = Paths.get(outputDirectory, errorFileName);
+        Path destInfoFile = Paths.get(outputDirectory, infoFileName);
+        Path destGraphFile = Paths.get(outputDirectory, graphFileName);
+        Path destJson = Paths.get(outputDirectory, jsonFileName);
 
         try {
             ProcessBuilder pb = new ProcessBuilder(cmdList);
-            pb.redirectError(error.toFile());
+            pb.redirectError(srcErr.toFile());
             Process process = pb.start();
 
             //Get process Id
@@ -104,16 +110,39 @@ public class AlgorithmQueueService {
             process.waitFor();
 
             if (process.exitValue() == 0) {
-                LOGGER.info(String.format("Moving txt file %s to %s", src, dest));
-                Files.move(src, dest, StandardCopyOption.REPLACE_EXISTING);
-                LOGGER.info(String.format("Moving json file %s to %s", json, dest));
-                Files.move(json, jsonDest, StandardCopyOption.REPLACE_EXISTING);
-                Files.deleteIfExists(error);
+                if (Files.exists(srcInfoFile)) {
+                    LOGGER.info(String.format("Moving file %s to %s.", srcInfoFile, destInfoFile));
+                    Files.move(srcInfoFile, destInfoFile, StandardCopyOption.REPLACE_EXISTING);
+                }
+                if (Files.exists(srcGraphFile)) {
+                    LOGGER.info(String.format("Moving file %s to %s.", srcGraphFile, destGraphFile));
+                    Files.move(srcGraphFile, destGraphFile, StandardCopyOption.REPLACE_EXISTING);
+                }
+                if (Files.exists(srcJson)) {
+                    LOGGER.info(String.format("Moving file %s to %s.", srcJson, destJson));
+                    Files.move(srcJson, destJson, StandardCopyOption.REPLACE_EXISTING);
+                }
+                if (Files.exists(srcErr)) {
+                    LOGGER.info(String.format("Deleting file %s.", srcErr));
+                    Files.deleteIfExists(srcErr);
+                }
             } else {
-                LOGGER.info(String.format("Deleting tmp txt file %s", src));
-                Files.deleteIfExists(src);
-                LOGGER.info(String.format("Moving error file %s to %s", error, errorDest));
-                Files.move(error, errorDest, StandardCopyOption.REPLACE_EXISTING);
+                if (Files.exists(srcInfoFile)) {
+                    LOGGER.info(String.format("Deleting file %s.", srcInfoFile));
+                    Files.deleteIfExists(srcInfoFile);
+                }
+                if (Files.exists(srcGraphFile)) {
+                    LOGGER.info(String.format("Deleting file %s.", srcGraphFile));
+                    Files.deleteIfExists(srcGraphFile);
+                }
+                if (Files.exists(srcJson)) {
+                    LOGGER.info(String.format("Deleting file %s.", srcJson));
+                    Files.deleteIfExists(srcJson);
+                }
+                if (Files.exists(srcErr)) {
+                    LOGGER.info(String.format("Moving file %s to %s.", srcErr, destErr));
+                    Files.move(srcErr, destErr, StandardCopyOption.REPLACE_EXISTING);
+                }
             }
         } catch (IOException | InterruptedException exception) {
             LOGGER.error("Algorithm did not run successfully.", exception);
