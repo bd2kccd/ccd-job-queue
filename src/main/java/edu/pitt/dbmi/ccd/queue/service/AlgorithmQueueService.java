@@ -83,7 +83,7 @@ public class AlgorithmQueueService {
         String errorFileName = fileName + "_error.txt";
         String infoFileName = fileName + ".txt";
         String graphFileName = fileName + "_graph.txt";
-        String jsonFileName = fileName + ".json";
+        String jsonFileName = fileName + "_graph.json";
 
         Path srcErr = Paths.get(tmpDirectory, errorFileName);
         Path srcInfoFile = Paths.get(tmpDirectory, infoFileName);
