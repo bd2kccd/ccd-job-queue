@@ -182,7 +182,7 @@ public class AlgorithmSlurmService {
         Path src = Paths.get(tmpDirectory, fileName);
         Path dest = Paths.get(outputDirectory, fileName);
 
-        String jsonFileName = jobQueueInfo.getFileName() + ".json";
+        String jsonFileName = jobQueueInfo.getFileName() + "_graph.json";
         Path json = Paths.get(tmpDirectory, jsonFileName);
         Path jsonDest = Paths.get(outputDirectory, jsonFileName);
 
@@ -270,7 +270,7 @@ public class AlgorithmSlurmService {
         String datasets = null;
         for (int i = 0; i < cmdList.size(); i++) {
             String cmd = cmdList.get(i);
-            if (cmd.equalsIgnoreCase("--data")) {
+            if (cmd.equalsIgnoreCase("--dataset")) {
                 datasets = cmdList.get(i + 1);
                 break;
             }
