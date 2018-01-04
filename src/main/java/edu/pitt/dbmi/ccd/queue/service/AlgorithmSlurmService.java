@@ -129,7 +129,7 @@ public class AlgorithmSlurmService {
             stat = client.getJobStat(jobId);
         } catch (Exception e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            LOGGER.error("", e);
         }
         return stat;
     }
@@ -140,7 +140,7 @@ public class AlgorithmSlurmService {
             jobs = client.getFinishedJobs();
         } catch (Exception e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            LOGGER.error("", e);
         }
         return jobs;
     }
@@ -166,7 +166,7 @@ public class AlgorithmSlurmService {
             client.cancelJob(jobId);
         } catch (Exception e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            LOGGER.error("", e);
         }
 
         deleteRunSlurmScript(jobQueueInfo);
@@ -210,7 +210,7 @@ public class AlgorithmSlurmService {
             client.deleteRemoteFile(error.toAbsolutePath().toString());
         } catch (Exception e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            LOGGER.error("", e);
         }
 
         deleteRunSlurmScript(jobQueueInfo);
@@ -298,7 +298,7 @@ public class AlgorithmSlurmService {
                         dataset);
             } catch (Exception e) {
                 // TODO Auto-generated catch block
-                e.printStackTrace();
+                LOGGER.error("", e);
             }
         });
 
@@ -333,7 +333,7 @@ public class AlgorithmSlurmService {
                             knowledge);
                 } catch (Exception e) {
                     // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    LOGGER.error("", e);
                 }
             });
         }
