@@ -80,19 +80,16 @@ public class AlgorithmQueueService {
         });
         LOGGER.info("Algorithm command: " + sb.toString());
 
-        String errorFileName = fileName + "_error.txt";
         String infoFileName = fileName + ".txt";
-        String graphFileName = fileName + "_graph.txt";
+        String errorFileName = String.format("error_%s.txt", fileName);
         String jsonFileName = fileName + "_graph.json";
 
         Path srcErr = Paths.get(tmpDirectory, errorFileName);
         Path srcInfoFile = Paths.get(tmpDirectory, infoFileName);
-        Path srcGraphFile = Paths.get(tmpDirectory, graphFileName);
         Path srcJson = Paths.get(tmpDirectory, jsonFileName);
 
         Path destErr = Paths.get(outputDirectory, errorFileName);
         Path destInfoFile = Paths.get(outputDirectory, infoFileName);
-        Path destGraphFile = Paths.get(outputDirectory, graphFileName);
         Path destJson = Paths.get(outputDirectory, jsonFileName);
 
         try {
@@ -114,10 +111,6 @@ public class AlgorithmQueueService {
                     LOGGER.info(String.format("Moving file %s to %s.", srcInfoFile, destInfoFile));
                     Files.move(srcInfoFile, destInfoFile, StandardCopyOption.REPLACE_EXISTING);
                 }
-                if (Files.exists(srcGraphFile)) {
-                    LOGGER.info(String.format("Moving file %s to %s.", srcGraphFile, destGraphFile));
-                    Files.move(srcGraphFile, destGraphFile, StandardCopyOption.REPLACE_EXISTING);
-                }
                 if (Files.exists(srcJson)) {
                     LOGGER.info(String.format("Moving file %s to %s.", srcJson, destJson));
                     Files.move(srcJson, destJson, StandardCopyOption.REPLACE_EXISTING);
@@ -130,10 +123,6 @@ public class AlgorithmQueueService {
                 if (Files.exists(srcInfoFile)) {
                     LOGGER.info(String.format("Deleting file %s.", srcInfoFile));
                     Files.deleteIfExists(srcInfoFile);
-                }
-                if (Files.exists(srcGraphFile)) {
-                    LOGGER.info(String.format("Deleting file %s.", srcGraphFile));
-                    Files.deleteIfExists(srcGraphFile);
                 }
                 if (Files.exists(srcJson)) {
                     LOGGER.info(String.format("Deleting file %s.", srcJson));
