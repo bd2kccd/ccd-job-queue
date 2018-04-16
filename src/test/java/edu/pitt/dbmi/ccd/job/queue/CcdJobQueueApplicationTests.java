@@ -1,7 +1,5 @@
-package edu.pitt.dbmi.ccd.queue;
-
 /*
- * Copyright (C) 2015 University of Pittsburgh.
+ * Copyright (C) 2018 University of Pittsburgh.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,27 +16,25 @@ package edu.pitt.dbmi.ccd.queue;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-import edu.pitt.dbmi.ccd.db.CCDDatabaseApplication;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Import;
+package edu.pitt.dbmi.ccd.job.queue;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
 
 /**
  *
- * Aug 4, 2015 3:48:15 PM
+ * Apr 16, 2018 2:38:59 PM
  *
- * @author Chirayu (Kong) Wongchokprasitti
- *
+ * @author Kevin V. Bui (kvb2@pitt.edu)
  */
-@SpringBootApplication
-@Import(CCDDatabaseApplication.class)
-public class CCDJobQueueApplication {
+@RunWith(SpringRunner.class)
+@SpringBootTest
+public class CcdJobQueueApplicationTests {
 
-    /**
-     * @param args
-     */
-    public static void main(String[] args) {
-        SpringApplication.run(CCDJobQueueApplication.class, args);
+    @Test
+    public void contextLoads() {
     }
 
 }

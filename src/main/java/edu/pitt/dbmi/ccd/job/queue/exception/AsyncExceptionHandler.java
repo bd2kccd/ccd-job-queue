@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 University of Pittsburgh.
+ * Copyright (C) 2018 University of Pittsburgh.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,25 +16,27 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-package edu.pitt.dbmi.ccd.queue;
+package edu.pitt.dbmi.ccd.job.queue.exception;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import java.lang.reflect.Method;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 
 /**
  *
- * Mar 23, 2017 12:18:12 PM
+ * Apr 16, 2018 3:33:49 PM
  *
  * @author Kevin V. Bui (kvb2@pitt.edu)
  */
-@RunWith(SpringRunner.class)
-@SpringBootTest
-public class CCDJobQueueApplicationTest {
+public class AsyncExceptionHandler implements AsyncUncaughtExceptionHandler {
 
-    @Test
-    public void contextLoads() {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncExceptionHandler.class);
+
+    @Override
+    public void handleUncaughtException(Throwable thrwbl, Method method, Object... os) {
+        String errMsg = String.format("Method: %s", method.getName());
+        LOGGER.error(errMsg, thrwbl);
     }
 
 }
