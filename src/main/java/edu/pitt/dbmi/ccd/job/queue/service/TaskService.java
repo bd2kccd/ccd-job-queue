@@ -16,23 +16,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-package edu.pitt.dbmi.ccd.job.queue;
+package edu.pitt.dbmi.ccd.job.queue.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.stereotype.Service;
+import edu.pitt.dbmi.ccd.db.entity.JobQueue;
+import java.util.regex.Pattern;
 
 /**
  *
- * Apr 16, 2018 4:45:15 PM
+ * Apr 18, 2018 1:57:19 PM
  *
  * @author Kevin V. Bui (kvb2@pitt.edu)
  */
-@Service
-@EnableAsync
-public class LocalRunTaskService {
+public interface TaskService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LocalRunTaskService.class);
+    public static final Pattern PIPE_PATTERN = Pattern.compile("\\|");
+    public static final Pattern COLON_PATTERN = Pattern.compile(":");
+
+    public void runTask(JobQueue jobQueue);
 
 }

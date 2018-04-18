@@ -19,12 +19,12 @@
 package edu.pitt.dbmi.ccd.job.queue.conf;
 
 import edu.pitt.dbmi.ccd.job.queue.exception.AsyncExceptionHandler;
+import edu.pitt.dbmi.ccd.job.queue.prop.ThreadPoolProperties;
 import java.util.concurrent.Executor;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /**
@@ -34,32 +34,22 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
  * @author Kevin V. Bui (kvb2@pitt.edu)
  */
 @Configuration
-@EnableAsync
 public class ApplicationAsyncConfigurer implements AsyncConfigurer {
 
-    private final int corePoolSize;
-    private final int maxPoolSize;
-    private final int queueCapacity;
-    private final String threadNamePrefix;
+    private final ThreadPoolProperties threadPoolProperties;
 
-    public ApplicationAsyncConfigurer(
-            @Value("${ccd.core.pool.size:10}") int corePoolSize,
-            @Value("${ccd.max.pool.size:2147483647}") int maxPoolSize,
-            @Value("${ccd.queue.capacity:2147483647}") int queueCapacity,
-            @Value("${ccd.thread.name.prefix:ccd-job}") String threadNamePrefix) {
-        this.corePoolSize = corePoolSize;
-        this.maxPoolSize = maxPoolSize;
-        this.queueCapacity = queueCapacity;
-        this.threadNamePrefix = threadNamePrefix;
+    @Autowired
+    public ApplicationAsyncConfigurer(ThreadPoolProperties threadPoolProperties) {
+        this.threadPoolProperties = threadPoolProperties;
     }
 
     @Override
     public Executor getAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(corePoolSize);
-        executor.setMaxPoolSize(maxPoolSize);
-        executor.setQueueCapacity(queueCapacity);
-        executor.setThreadNamePrefix(threadNamePrefix);
+        executor.setCorePoolSize(threadPoolProperties.getCorePoolSize());
+        executor.setMaxPoolSize(threadPoolProperties.getMaxPoolSize());
+        executor.setQueueCapacity(threadPoolProperties.getQueueCapacity());
+        executor.setThreadNamePrefix(threadPoolProperties.getThreadNamePrefix());
         executor.initialize();
 
         return executor;
