@@ -21,6 +21,7 @@ package edu.pitt.dbmi.ccd.job.queue.service;
 import edu.pitt.dbmi.ccd.db.entity.File;
 import edu.pitt.dbmi.ccd.db.entity.JobInfo;
 import edu.pitt.dbmi.ccd.db.entity.JobQueue;
+import edu.pitt.dbmi.ccd.db.entity.TetradDataFile;
 import edu.pitt.dbmi.ccd.db.entity.UserAccount;
 import edu.pitt.dbmi.ccd.db.service.FileGroupService;
 import edu.pitt.dbmi.ccd.db.service.TetradDataFileService;
@@ -29,6 +30,7 @@ import edu.pitt.dbmi.ccd.job.queue.service.filesys.FileManagementService;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
@@ -42,8 +44,6 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class TetradTaskService {
-
-    private final String DATA_FOLDER = "data";
 
     private final JobQueueProperties jobQueueProperties;
     private final FileGroupService fileGroupService;
@@ -74,20 +74,41 @@ public class TetradTaskService {
     private void addLocalDataCmd(JobInfo jobInfo, List<String> cmdList) {
         UserAccount userAccount = jobInfo.getUserAccount();
 
-        cmdList.add("--dataset");
-
         if (jobInfo.isSingleDataset()) {
-            File file = tetradDataFileService.getRepository()
-                    .getFile(jobInfo.getDatasetId(), userAccount);
-            cmdList.add(fileManagementService.getLocalFile(file, userAccount).toString());
+            TetradDataFile dataFile = tetradDataFileService.getRepository()
+                    .findByIdAndUserAccount(jobInfo.getDatasetId(), userAccount);
+            if (dataFile != null) {
+                cmdList.add("--dataset");
+                cmdList.add(fileManagementService.getLocalFile(dataFile.getFile(), userAccount).toString());
+
+                addDelimiterAndVariableType(dataFile, cmdList);
+            }
         } else {
             List<File> files = fileGroupService.getRepository()
                     .getFiles(jobInfo.getDatasetId(), userAccount);
-            String dataFile = files.stream()
-                    .map(e -> fileManagementService.getLocalFile(e, userAccount).toString())
-                    .collect(Collectors.joining(","));
-            cmdList.add(dataFile);
+            List<TetradDataFile> dataFiles = tetradDataFileService.getRepository()
+                    .findByFileIn(files);
+            if (!dataFiles.isEmpty()) {
+                cmdList.add("--dataset");
+                String dataFilesStr = files.stream()
+                        .map(e -> fileManagementService.getLocalFile(e, userAccount).toString())
+                        .collect(Collectors.joining(","));
+                cmdList.add(dataFilesStr);
+
+                Optional<TetradDataFile> opt = dataFiles.stream().findFirst();
+                if (opt.isPresent()) {
+                    addDelimiterAndVariableType(opt.get(), cmdList);
+                }
+            }
         }
+    }
+
+    private void addDelimiterAndVariableType(TetradDataFile dataFile, List<String> cmdList) {
+        cmdList.add("--delimiter");
+        cmdList.add(dataFile.getDataDelimiter().getShortName());
+
+        cmdList.add("--data-type");
+        cmdList.add(dataFile.getVariableType().getShortName());
     }
 
     private void addParameterCmd(JobInfo jobInfo, List<String> cmdList) {
@@ -124,6 +145,12 @@ public class TetradTaskService {
 
         // algorithm parameters
         addParameterCmd(jobInfo, cmdList);
+
+        // output options
+        cmdList.add("--prefix");
+        cmdList.add(jobInfo.getName());
+
+        cmdList.add("--json-graph");
     }
 
 }
