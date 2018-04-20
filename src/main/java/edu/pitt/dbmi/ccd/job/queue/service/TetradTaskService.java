@@ -18,20 +18,14 @@
  */
 package edu.pitt.dbmi.ccd.job.queue.service;
 
-import edu.pitt.dbmi.ccd.db.entity.File;
+import de.flapdoodle.embed.process.runtime.Processes;
 import edu.pitt.dbmi.ccd.db.entity.JobInfo;
 import edu.pitt.dbmi.ccd.db.entity.JobQueue;
-import edu.pitt.dbmi.ccd.db.entity.TetradDataFile;
-import edu.pitt.dbmi.ccd.db.entity.UserAccount;
-import edu.pitt.dbmi.ccd.db.service.FileGroupService;
-import edu.pitt.dbmi.ccd.db.service.TetradDataFileService;
-import edu.pitt.dbmi.ccd.job.queue.prop.JobQueueProperties;
-import edu.pitt.dbmi.ccd.job.queue.service.filesys.FileManagementService;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import edu.pitt.dbmi.ccd.db.service.JobInfoService;
+import edu.pitt.dbmi.ccd.db.service.JobQueueService;
+import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -45,112 +39,45 @@ import org.springframework.stereotype.Service;
 @Service
 public class TetradTaskService {
 
-    private final JobQueueProperties jobQueueProperties;
-    private final FileGroupService fileGroupService;
-    private final TetradDataFileService tetradDataFileService;
-    private final FileManagementService fileManagementService;
+    private static final Logger LOGGER = LoggerFactory.getLogger(TetradTaskService.class);
+
+    private final CommandLineService cmdLineService;
+    private final FileSysService fileSysService;
+    private final JobInfoService jobInfoService;
+    private final JobQueueService jobQueueService;
 
     @Autowired
-    public TetradTaskService(JobQueueProperties jobQueueProperties, FileGroupService fileGroupService, TetradDataFileService tetradDataFileService, FileManagementService fileManagementService) {
-        this.jobQueueProperties = jobQueueProperties;
-        this.fileGroupService = fileGroupService;
-        this.tetradDataFileService = tetradDataFileService;
-        this.fileManagementService = fileManagementService;
+    public TetradTaskService(CommandLineService cmdLineService, FileSysService fileSysService, JobInfoService jobInfoService, JobQueueService jobQueueService) {
+        this.cmdLineService = cmdLineService;
+        this.fileSysService = fileSysService;
+        this.jobInfoService = jobInfoService;
+        this.jobQueueService = jobQueueService;
     }
 
     @Async
     public void runTaskLocal(JobQueue jobQueue) {
+        LOGGER.info("Run Job ID: " + jobQueue.getId());
+
         JobInfo jobInfo = jobQueue.getJobInfo();
-    }
+//        jobInfo = jobInfoService.setStartJob(jobInfo);
+        try {
+            ProcessBuilder pb = new ProcessBuilder(cmdLineService.createCmdList(jobInfo, true));
+            pb.redirectError(fileSysService.getErrorFile(jobInfo).toFile());
+            Process process = pb.start();
 
-    public String createLocalCmd(JobInfo jobInfo) {
-        List<String> cmdList = new LinkedList<>();
-        addCommonCmd(jobInfo, cmdList);
-        addLocalDataCmd(jobInfo, cmdList);
+            Long pid = Processes.processId(process);
+            jobQueueService.setPID(pid, jobQueue);
+            LOGGER.info("Set Job's pid to be: " + pid);
 
-        return cmdList.stream().collect(Collectors.joining(" "));
-    }
+            process.waitFor();
 
-    private void addLocalDataCmd(JobInfo jobInfo, List<String> cmdList) {
-        UserAccount userAccount = jobInfo.getUserAccount();
+            if (process.exitValue() == 0) {
 
-        if (jobInfo.isSingleDataset()) {
-            TetradDataFile dataFile = tetradDataFileService.getRepository()
-                    .findByIdAndUserAccount(jobInfo.getDatasetId(), userAccount);
-            if (dataFile != null) {
-                cmdList.add("--dataset");
-                cmdList.add(fileManagementService.getLocalFile(dataFile.getFile(), userAccount).toString());
-
-                addDelimiterAndVariableType(dataFile, cmdList);
             }
-        } else {
-            List<File> files = fileGroupService.getRepository()
-                    .getFiles(jobInfo.getDatasetId(), userAccount);
-            List<TetradDataFile> dataFiles = tetradDataFileService.getRepository()
-                    .findByFileIn(files);
-            if (!dataFiles.isEmpty()) {
-                cmdList.add("--dataset");
-                String dataFilesStr = files.stream()
-                        .map(e -> fileManagementService.getLocalFile(e, userAccount).toString())
-                        .collect(Collectors.joining(","));
-                cmdList.add(dataFilesStr);
+        } catch (IOException | InterruptedException exception) {
+            LOGGER.error("Job failed.", exception);
 
-                Optional<TetradDataFile> opt = dataFiles.stream().findFirst();
-                if (opt.isPresent()) {
-                    addDelimiterAndVariableType(opt.get(), cmdList);
-                }
-            }
+            jobInfoService.setTerminateJob(jobInfo);
         }
     }
-
-    private void addDelimiterAndVariableType(TetradDataFile dataFile, List<String> cmdList) {
-        cmdList.add("--delimiter");
-        cmdList.add(dataFile.getDataDelimiter().getShortName());
-
-        cmdList.add("--data-type");
-        cmdList.add(dataFile.getVariableType().getShortName());
-    }
-
-    private void addParameterCmd(JobInfo jobInfo, List<String> cmdList) {
-        Arrays.stream(TaskService.PIPE_PATTERN.split(jobInfo.getAlgoParam()))
-                .forEach(e -> {
-                    String[] keyVal = TaskService.COLON_PATTERN.split(e);
-                    if (keyVal.length == 2) {
-                        String key = String.format("--%s", keyVal[0]);
-                        String val = keyVal[1];
-                        switch (val) {
-                            case "true":
-                                cmdList.add(key);
-                                break;
-                            case "false":
-                                // do nothing
-                                break;
-                            default:
-                                cmdList.add(key);
-                                cmdList.add(val);
-                        }
-                    }
-                });
-    }
-
-    private void addCommonCmd(JobInfo jobInfo, List<String> cmdList) {
-        cmdList.add("java");
-
-        // jvm options
-        cmdList.addAll(jobQueueProperties.getJvmOptions());
-
-        // jar file
-        cmdList.add("-jar");
-        cmdList.add(jobQueueProperties.getTetradExecutable());
-
-        // algorithm parameters
-        addParameterCmd(jobInfo, cmdList);
-
-        // output options
-        cmdList.add("--prefix");
-        cmdList.add(jobInfo.getName());
-
-        cmdList.add("--json-graph");
-    }
-
 }

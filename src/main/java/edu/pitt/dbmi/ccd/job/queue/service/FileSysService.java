@@ -16,66 +16,57 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-package edu.pitt.dbmi.ccd.job.queue.service.filesys;
+package edu.pitt.dbmi.ccd.job.queue.service;
 
 import edu.pitt.dbmi.ccd.db.entity.File;
-import edu.pitt.dbmi.ccd.db.entity.UserAccount;
+import edu.pitt.dbmi.ccd.db.entity.JobInfo;
 import edu.pitt.dbmi.ccd.job.queue.prop.JobQueueProperties;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
  *
- * Apr 18, 2018 6:18:20 PM
+ * Apr 20, 2018 4:11:27 PM
  *
  * @author Kevin V. Bui (kvb2@pitt.edu)
  */
 @Service
-public class FileManagementService {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(FileManagementService.class);
+public class FileSysService {
 
     private final String DATA_FOLDER = "data";
+    private final String TMP_FOLDER = "tmp";
     private final String RESULT_FOLDER = "results";
 
     private final JobQueueProperties jobQueueProperties;
 
     @Autowired
-    public FileManagementService(JobQueueProperties jobQueueProperties) {
+    public FileSysService(JobQueueProperties jobQueueProperties) {
         this.jobQueueProperties = jobQueueProperties;
     }
 
-    public Path getLocalFile(File file, UserAccount userAccount) {
+    public Path getDirOut(JobInfo jobInfo) {
         String rootDir = jobQueueProperties.getWorkspaceDir();
-        String userFolder = userAccount.getAccount();
-        String fileName = file.getName();
+        String userFolder = jobInfo.getUserAccount().getAccount();
+        String jobName = jobInfo.getName();
 
-        return Paths.get(rootDir, userFolder, DATA_FOLDER, fileName);
+        return Paths.get(rootDir, userFolder, TMP_FOLDER, jobName);
     }
 
-    public Path getUserHomeDirectory(UserAccount userAccount) {
+    public Path getDataset(JobInfo jobInfo, File file) {
         String rootDir = jobQueueProperties.getWorkspaceDir();
-        String userFolder = userAccount.getAccount();
+        String userFolder = jobInfo.getUserAccount().getAccount();
 
-        return Paths.get(rootDir, userFolder);
+        return Paths.get(rootDir, userFolder, DATA_FOLDER, file.getName());
     }
 
-    public Path getUserDataDirectory(UserAccount userAccount) {
+    public Path getErrorFile(JobInfo jobInfo) {
         String rootDir = jobQueueProperties.getWorkspaceDir();
-        String userFolder = userAccount.getAccount();
+        String userFolder = jobInfo.getUserAccount().getAccount();
+        String jobName = jobInfo.getName();
 
-        return Paths.get(rootDir, userFolder, DATA_FOLDER);
-    }
-
-    public Path getUserResultDirectory(UserAccount userAccount) {
-        String rootDir = jobQueueProperties.getWorkspaceDir();
-        String userFolder = userAccount.getAccount();
-
-        return Paths.get(rootDir, userFolder, RESULT_FOLDER);
+        return Paths.get(rootDir, userFolder, TMP_FOLDER, jobName, jobName + ".error");
     }
 
 }
