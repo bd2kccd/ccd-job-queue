@@ -16,24 +16,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-package edu.pitt.dbmi.ccd.job.queue.service;
+package edu.pitt.dbmi.ccd.job.queue.service.task;
 
 /**
  *
- * Apr 18, 2018 1:57:19 PM
+ * Apr 24, 2018 3:38:10 PM
  *
  * @author Kevin V. Bui (kvb2@pitt.edu)
  */
-public interface TaskService {
-
-    public void handleCanceledTasks();
-
-    public void handleFailedTasks();
-
-    public void handleFinishedTasks();
-
-    public void handleQueuedTasks();
-
-    public void handleStartedTasks();
+public abstract class AbstractTetradTask {
 
 }

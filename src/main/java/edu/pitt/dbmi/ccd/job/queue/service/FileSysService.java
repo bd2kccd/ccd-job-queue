@@ -21,8 +21,13 @@ package edu.pitt.dbmi.ccd.job.queue.service;
 import edu.pitt.dbmi.ccd.db.entity.File;
 import edu.pitt.dbmi.ccd.db.entity.JobInfo;
 import edu.pitt.dbmi.ccd.job.queue.prop.JobQueueProperties;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +39,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class FileSysService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileSysService.class);
 
     private final String DATA_FOLDER = "data";
     private final String TMP_FOLDER = "tmp";
@@ -54,6 +61,23 @@ public class FileSysService {
         return Paths.get(rootDir, userFolder, TMP_FOLDER, jobName);
     }
 
+    public Path getResultDir(JobInfo jobInfo) {
+        String rootDir = jobQueueProperties.getWorkspaceDir();
+        String userFolder = jobInfo.getUserAccount().getAccount();
+        String jobName = jobInfo.getName();
+
+        Path resultDir = Paths.get(rootDir, userFolder, RESULT_FOLDER, jobName);
+        if (Files.notExists(resultDir, LinkOption.NOFOLLOW_LINKS)) {
+            try {
+                Files.createDirectories(resultDir);
+            } catch (IOException exception) {
+                LOGGER.error("Unable create directory.", exception);
+            }
+        }
+
+        return resultDir;
+    }
+
     public Path getDataset(JobInfo jobInfo, File file) {
         String rootDir = jobQueueProperties.getWorkspaceDir();
         String userFolder = jobInfo.getUserAccount().getAccount();
@@ -67,6 +91,14 @@ public class FileSysService {
         String jobName = jobInfo.getName();
 
         return Paths.get(rootDir, userFolder, TMP_FOLDER, jobName, jobName + ".error");
+    }
+
+    public Path getFileInDirOut(JobInfo jobInfo, String fileName) {
+        return Paths.get(getDirOut(jobInfo).toString(), fileName);
+    }
+
+    public Path getFileInResultDir(JobInfo jobInfo, String fileName) {
+        return Paths.get(getResultDir(jobInfo).toString(), fileName);
     }
 
 }

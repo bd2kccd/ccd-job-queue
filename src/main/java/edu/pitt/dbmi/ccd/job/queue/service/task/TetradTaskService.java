@@ -16,24 +16,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-package edu.pitt.dbmi.ccd.job.queue.service;
+package edu.pitt.dbmi.ccd.job.queue.service.task;
+
+import edu.pitt.dbmi.ccd.db.entity.JobQueue;
+import java.io.IOException;
 
 /**
  *
- * Apr 18, 2018 1:57:19 PM
+ * Apr 24, 2018 3:36:44 PM
  *
  * @author Kevin V. Bui (kvb2@pitt.edu)
  */
-public interface TaskService {
+public interface TetradTaskService {
 
-    public void handleCanceledTasks();
+    public void runTask(JobQueue jobQueue);
 
-    public void handleFailedTasks();
-
-    public void handleFinishedTasks();
-
-    public void handleQueuedTasks();
-
-    public void handleStartedTasks();
+    public void cleanUpFiles(JobQueue jobQueue, boolean success) throws IOException;
 
 }

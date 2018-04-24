@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,9 @@ public class CommandLineService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandLineService.class);
 
+    public static final Pattern PIPE_PATTERN = Pattern.compile("\\|");
+    public static final Pattern COLON_PATTERN = Pattern.compile(":");
+
     private final JobQueueProperties jobQueueProperties;
     private final FileGroupService fileGroupService;
     private final TetradDataFileService tetradDataFileService;
@@ -63,10 +67,10 @@ public class CommandLineService {
         this.fileSysService = fileSysService;
     }
 
-    public List<String> createCmdList(JobInfo jobInfo, boolean runLocal) {
+    public List<String> createCmdList(JobInfo jobInfo, boolean local) {
         List<String> cmdList = new LinkedList<>();
         addCommon(jobInfo, cmdList);
-        if (runLocal) {
+        if (local) {
             addLocalData(jobInfo, cmdList);
             addLocalDirOut(jobInfo, cmdList);
         }
@@ -130,9 +134,9 @@ public class CommandLineService {
     }
 
     private void addParameter(JobInfo jobInfo, List<String> cmdList) {
-        Arrays.stream(TaskService.PIPE_PATTERN.split(jobInfo.getAlgoParam()))
+        Arrays.stream(PIPE_PATTERN.split(jobInfo.getAlgoParam()))
                 .forEach(e -> {
-                    String[] keyVal = TaskService.COLON_PATTERN.split(e);
+                    String[] keyVal = COLON_PATTERN.split(e);
                     if (keyVal.length == 2) {
                         String key = String.format("--%s", keyVal[0]);
                         String val = keyVal[1];
