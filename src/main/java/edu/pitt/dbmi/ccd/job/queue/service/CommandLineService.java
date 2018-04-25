@@ -87,7 +87,7 @@ public class CommandLineService {
     }
 
     private void addLocalDirOut(JobInfo jobInfo, List<String> cmdList) {
-        Path dirOut = fileSysService.getDirOut(jobInfo);
+        Path dirOut = fileSysService.getOutputDirectory(jobInfo);
         if (Files.notExists(dirOut, LinkOption.NOFOLLOW_LINKS)) {
             try {
                 Files.createDirectory(dirOut);
@@ -108,7 +108,7 @@ public class CommandLineService {
                     .findByIdAndUserAccount(jobInfo.getDatasetId(), userAccount);
             if (dataFile != null) {
                 cmdList.add("--dataset");
-                cmdList.add(fileSysService.getDataset(jobInfo, dataFile.getFile()).toString());
+                cmdList.add(fileSysService.getDataset(jobInfo.getUserAccount(), dataFile.getFile()).toString());
 
                 addDelimiterAndVariableType(dataFile, cmdList);
             }
@@ -119,7 +119,7 @@ public class CommandLineService {
                     .findByFileIn(files);
             if (!dataFiles.isEmpty()) {
                 String dataStr = dataFiles.stream()
-                        .map(e -> fileSysService.getDataset(jobInfo, e.getFile()).toString())
+                        .map(e -> fileSysService.getDataset(jobInfo.getUserAccount(), e.getFile()).toString())
                         .collect(Collectors.joining(","));
 
                 cmdList.add("--dataset");

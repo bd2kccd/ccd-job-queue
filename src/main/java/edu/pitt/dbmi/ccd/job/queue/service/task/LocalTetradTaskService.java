@@ -19,23 +19,25 @@
 package edu.pitt.dbmi.ccd.job.queue.service.task;
 
 import de.flapdoodle.embed.process.runtime.Processes;
+import edu.pitt.dbmi.ccd.db.entity.FileFormat;
 import edu.pitt.dbmi.ccd.db.entity.JobInfo;
 import edu.pitt.dbmi.ccd.db.entity.JobQueue;
+import edu.pitt.dbmi.ccd.db.entity.UserAccount;
+import edu.pitt.dbmi.ccd.db.service.FileFormatService;
 import edu.pitt.dbmi.ccd.db.service.JobQueueService;
+import edu.pitt.dbmi.ccd.db.service.JobResultService;
 import edu.pitt.dbmi.ccd.job.queue.service.CommandLineService;
 import edu.pitt.dbmi.ccd.job.queue.service.FileSysService;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.util.LinkedList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.util.FileSystemUtils;
 
 /**
  *
@@ -52,12 +54,16 @@ public class LocalTetradTaskService extends AbstractTetradTask implements Tetrad
     private final CommandLineService cmdLineService;
     private final FileSysService fileSysService;
     private final JobQueueService jobQueueService;
+    private final JobResultService jobResultService;
+    private final FileFormatService fileFormatService;
 
     @Autowired
-    public LocalTetradTaskService(CommandLineService cmdLineService, FileSysService fileSysService, JobQueueService jobQueueService) {
+    public LocalTetradTaskService(CommandLineService cmdLineService, FileSysService fileSysService, JobQueueService jobQueueService, JobResultService jobResultService, FileFormatService fileFormatService) {
         this.cmdLineService = cmdLineService;
         this.fileSysService = fileSysService;
         this.jobQueueService = jobQueueService;
+        this.jobResultService = jobResultService;
+        this.fileFormatService = fileFormatService;
     }
 
     @Async
@@ -83,20 +89,27 @@ public class LocalTetradTaskService extends AbstractTetradTask implements Tetrad
         }
     }
 
-    public void cleanUpFiles(JobQueue jobQueue, boolean success) throws IOException {
+    @Override
+    public void collectResultFiles(JobQueue jobQueue) {
         JobInfo jobInfo = jobQueue.getJobInfo();
+        UserAccount userAccount = jobInfo.getUserAccount();
 
-        Path outDir = fileSysService.getDirOut(jobInfo);
-        String fileName = success
-                ? jobInfo.getName() + "_graph.json"
-                : jobInfo.getName() + ".error";
-        Path source = fileSysService.getFileInDirOut(jobInfo, fileName);
-        Path target = fileSysService.getFileInResultDir(jobInfo, fileName);
-
-        if (Files.exists(source, LinkOption.NOFOLLOW_LINKS)) {
-            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+        List<Path> files = new LinkedList<>();
+        try {
+            files.addAll(fileSysService.getUserResultFiles(jobInfo.getUserAccount()));
+        } catch (IOException exception) {
+            LOGGER.error("", exception);
         }
-        FileSystemUtils.deleteRecursively(outDir);
+
+        try {
+            FileFormat fileFormat = fileFormatService.findByShortName(FileFormatService.TETRAD_RESULT_SHORT_NAME);
+            jobResultService.addResultFiles(jobInfo, files, fileFormat, userAccount);
+
+            jobQueueService.getRepository().delete(jobQueue);
+        } catch (Exception exception) {
+            LOGGER.error("", exception);
+        }
+
     }
 
 }

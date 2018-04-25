@@ -20,12 +20,14 @@ package edu.pitt.dbmi.ccd.job.queue.service;
 
 import edu.pitt.dbmi.ccd.db.entity.File;
 import edu.pitt.dbmi.ccd.db.entity.JobInfo;
+import edu.pitt.dbmi.ccd.db.entity.UserAccount;
 import edu.pitt.dbmi.ccd.job.queue.prop.JobQueueProperties;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +45,6 @@ public class FileSysService {
     private static final Logger LOGGER = LoggerFactory.getLogger(FileSysService.class);
 
     private final String DATA_FOLDER = "data";
-    private final String TMP_FOLDER = "tmp";
     private final String RESULT_FOLDER = "results";
 
     private final JobQueueProperties jobQueueProperties;
@@ -53,52 +54,79 @@ public class FileSysService {
         this.jobQueueProperties = jobQueueProperties;
     }
 
-    public Path getDirOut(JobInfo jobInfo) {
+    public Path getUserHomeDirectory(UserAccount userAccount) {
         String rootDir = jobQueueProperties.getWorkspaceDir();
-        String userFolder = jobInfo.getUserAccount().getAccount();
-        String jobName = jobInfo.getName();
+        String userFolder = userAccount.getAccount();
 
-        return Paths.get(rootDir, userFolder, TMP_FOLDER, jobName);
-    }
-
-    public Path getResultDir(JobInfo jobInfo) {
-        String rootDir = jobQueueProperties.getWorkspaceDir();
-        String userFolder = jobInfo.getUserAccount().getAccount();
-        String jobName = jobInfo.getName();
-
-        Path resultDir = Paths.get(rootDir, userFolder, RESULT_FOLDER, jobName);
-        if (Files.notExists(resultDir, LinkOption.NOFOLLOW_LINKS)) {
+        Path dir = Paths.get(rootDir, userFolder);
+        if (Files.notExists(dir)) {
             try {
-                Files.createDirectories(resultDir);
+                Files.createDirectory(dir);
             } catch (IOException exception) {
-                LOGGER.error("Unable create directory.", exception);
+                LOGGER.error("Unable to create user home directory.", exception);
             }
         }
 
-        return resultDir;
+        return dir;
     }
 
-    public Path getDataset(JobInfo jobInfo, File file) {
+    public Path getUserDataDirectory(UserAccount userAccount) {
         String rootDir = jobQueueProperties.getWorkspaceDir();
-        String userFolder = jobInfo.getUserAccount().getAccount();
+        String userFolder = userAccount.getAccount();
 
-        return Paths.get(rootDir, userFolder, DATA_FOLDER, file.getName());
+        Path dir = Paths.get(rootDir, userFolder, DATA_FOLDER);
+        if (Files.notExists(dir)) {
+            try {
+                Files.createDirectory(dir);
+            } catch (IOException exception) {
+                LOGGER.error("Unable to create directory for data.", exception);
+            }
+        }
+
+        return dir;
+    }
+
+    public Path getUserResultDirectory(UserAccount userAccount) {
+        String rootDir = jobQueueProperties.getWorkspaceDir();
+        String userFolder = userAccount.getAccount();
+
+        Path dir = Paths.get(rootDir, userFolder, RESULT_FOLDER);
+        if (Files.notExists(dir)) {
+            try {
+                Files.createDirectory(dir);
+            } catch (IOException exception) {
+                LOGGER.error("Unable to create directory for results.", exception);
+            }
+        }
+
+        return dir;
+    }
+
+    public Path getOutputDirectory(JobInfo jobInfo) {
+        String resultDir = getUserResultDirectory(jobInfo.getUserAccount()).toString();
+        String subDir = jobInfo.getName();
+
+        return Paths.get(resultDir, subDir);
     }
 
     public Path getErrorFile(JobInfo jobInfo) {
-        String rootDir = jobQueueProperties.getWorkspaceDir();
-        String userFolder = jobInfo.getUserAccount().getAccount();
-        String jobName = jobInfo.getName();
+        String outDir = getOutputDirectory(jobInfo).toString();
+        String errorFile = String.format("%s.error", jobInfo.getName());
 
-        return Paths.get(rootDir, userFolder, TMP_FOLDER, jobName, jobName + ".error");
+        return Paths.get(outDir, errorFile);
     }
 
-    public Path getFileInDirOut(JobInfo jobInfo, String fileName) {
-        return Paths.get(getDirOut(jobInfo).toString(), fileName);
+    public Path getDataset(UserAccount userAccount, File file) {
+        String dataDir = getUserDataDirectory(userAccount).toString();
+        String fileName = file.getName();
+
+        return Paths.get(dataDir, fileName);
     }
 
-    public Path getFileInResultDir(JobInfo jobInfo, String fileName) {
-        return Paths.get(getResultDir(jobInfo).toString(), fileName);
+    public List<Path> getUserResultFiles(UserAccount userAccount) throws IOException {
+        return Files.walk(getUserResultDirectory(userAccount))
+                .filter(Files::isRegularFile)
+                .collect(Collectors.toList());
     }
 
 }

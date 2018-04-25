@@ -19,7 +19,6 @@
 package edu.pitt.dbmi.ccd.job.queue.service.task;
 
 import edu.pitt.dbmi.ccd.db.entity.JobQueue;
-import java.io.IOException;
 
 /**
  *
@@ -31,6 +30,6 @@ public interface TetradTaskService {
 
     public void runTask(JobQueue jobQueue);
 
-    public void cleanUpFiles(JobQueue jobQueue, boolean success) throws IOException;
+    public void collectResultFiles(JobQueue jobQueue);
 
 }

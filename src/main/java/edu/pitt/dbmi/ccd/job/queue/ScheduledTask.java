@@ -26,7 +26,6 @@ import edu.pitt.dbmi.ccd.db.service.AlgorithmTypeService;
 import edu.pitt.dbmi.ccd.db.service.JobQueueService;
 import edu.pitt.dbmi.ccd.db.service.JobStatusService;
 import edu.pitt.dbmi.ccd.job.queue.service.task.TetradTaskService;
-import java.io.IOException;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,13 +81,7 @@ public class ScheduledTask {
                 .forEach(job -> {
                     JobInfo jobInfo = job.getJobInfo();
                     if (isTetradJob(jobInfo)) {
-                        try {
-                            tetradTaskService.cleanUpFiles(job, true);
-
-                            jobQueueService.getRepository().delete(job);
-                        } catch (IOException exception) {
-                            LOGGER.error("Unable to clean up Tetrad files.", exception);
-                        }
+                        tetradTaskService.collectResultFiles(job);
                     }
                 });
     }
