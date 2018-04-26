@@ -18,7 +18,6 @@
  */
 package edu.pitt.dbmi.ccd.job.queue;
 
-import de.flapdoodle.embed.process.distribution.Platform;
 import edu.pitt.dbmi.ccd.db.entity.JobInfo;
 import edu.pitt.dbmi.ccd.db.entity.JobQueue;
 import edu.pitt.dbmi.ccd.db.entity.JobStatus;
@@ -56,54 +55,50 @@ public class ScheduledTask {
     }
 
     private void handleCanceledTasks() {
-        Platform platform = Platform.detect();
-        findByStatus(JobStatusService.CANCELED_SHORT_NAME)
-                .forEach(job -> {
-                    Long pid = job.getPid();
-                    if (pid == null) {
-                        LOGGER.info("Canceling queued job: " + job.getId());
-                        jobQueueService.getRepository().delete(job);
-                    } else {
-                        LOGGER.info("Canceling running job: " + job.getId());
-                    }
+        findJobByStatus(JobStatusService.CANCELED_SHORT_NAME)
+                .forEach(jobQueue -> {
                 });
     }
 
     private void handleFailedTasks() {
-        findByStatus(JobStatusService.FAILED_SHORT_NAME)
-                .forEach(job -> {
-                    JobInfo jobInfo = job.getJobInfo();
+        findJobByStatus(JobStatusService.FAILED_SHORT_NAME)
+                .forEach(jobQueue -> {
+                    collectResultFiles(jobQueue);
                 });
     }
 
     private void handleFinishedTasks() {
-        findByStatus(JobStatusService.FINISHED_SHORT_NAME)
-                .forEach(job -> {
-                    jobQueueService.getRepository().delete(job);
-                    JobInfo jobInfo = job.getJobInfo();
-                    if (isTetradJob(jobInfo)) {
-                        LOGGER.info("Collecting result files: " + job.getId());
-                        tetradTaskService.collectResultFiles(job.getJobInfo());
-                    }
+        findJobByStatus(JobStatusService.FINISHED_SHORT_NAME)
+                .forEach(jobQueue -> {
+                    collectResultFiles(jobQueue);
                 });
     }
 
     private void handleQueuedTasks() {
-        findByStatus(JobStatusService.QUEUED_SHORT_NAME)
-                .forEach(job -> {
-                    JobInfo jobInfo = job.getJobInfo();
+        findJobByStatus(JobStatusService.QUEUED_SHORT_NAME)
+                .forEach(jobQueue -> {
+                    JobInfo jobInfo = jobQueue.getJobInfo();
+                    LOGGER.info("Running job: " + jobQueue.getId());
                     if (isTetradJob(jobInfo)) {
-                        LOGGER.info("Runing Tetrad: " + job.getId());
-                        tetradTaskService.runTask(job);
+                        tetradTaskService.runTask(jobQueue);
                     }
                 });
     }
 
     private void handleStartedTasks() {
-        findByStatus(JobStatusService.STARTED_SHORT_NAME)
-                .forEach(job -> {
-                    JobInfo jobInfo = job.getJobInfo();
-                });
+    }
+
+    private void collectResultFiles(JobQueue jobQueue) {
+        JobInfo jobInfo = jobQueue.getJobInfo();
+        if (isTetradJob(jobInfo)) {
+            try {
+                tetradTaskService.collectResultFiles(jobInfo);
+
+                jobQueueService.getRepository().delete(jobQueue);
+            } catch (Exception exception) {
+                LOGGER.error("", exception);
+            }
+        }
     }
 
     private boolean isTetradJob(JobInfo jobInfo) {
@@ -111,7 +106,7 @@ public class ScheduledTask {
                 .equals(jobInfo.getAlgorithmType().getShortName());
     }
 
-    private List<JobQueue> findByStatus(String statusShortName) {
+    private List<JobQueue> findJobByStatus(String statusShortName) {
         JobStatus jobStatus = jobStatusService.findByShortName(statusShortName);
 
         return jobQueueService.getRepository().findByJobStatus(jobStatus);

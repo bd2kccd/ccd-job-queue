@@ -24,6 +24,7 @@ import edu.pitt.dbmi.ccd.db.entity.JobInfo;
 import edu.pitt.dbmi.ccd.db.entity.JobQueue;
 import edu.pitt.dbmi.ccd.db.entity.UserAccount;
 import edu.pitt.dbmi.ccd.db.service.FileFormatService;
+import edu.pitt.dbmi.ccd.db.service.JobLocationService;
 import edu.pitt.dbmi.ccd.db.service.JobQueueService;
 import edu.pitt.dbmi.ccd.db.service.JobResultService;
 import edu.pitt.dbmi.ccd.job.queue.service.CommandLineService;
@@ -55,14 +56,16 @@ public class LocalTetradTaskService extends AbstractTetradTask implements Tetrad
     private final FileSysService fileSysService;
     private final JobQueueService jobQueueService;
     private final JobResultService jobResultService;
+    private final JobLocationService jobLocationService;
     private final FileFormatService fileFormatService;
 
     @Autowired
-    public LocalTetradTaskService(CommandLineService cmdLineService, FileSysService fileSysService, JobQueueService jobQueueService, JobResultService jobResultService, FileFormatService fileFormatService) {
+    public LocalTetradTaskService(CommandLineService cmdLineService, FileSysService fileSysService, JobQueueService jobQueueService, JobResultService jobResultService, JobLocationService jobLocationService, FileFormatService fileFormatService) {
         this.cmdLineService = cmdLineService;
         this.fileSysService = fileSysService;
         this.jobQueueService = jobQueueService;
         this.jobResultService = jobResultService;
+        this.jobLocationService = jobLocationService;
         this.fileFormatService = fileFormatService;
     }
 
@@ -73,11 +76,16 @@ public class LocalTetradTaskService extends AbstractTetradTask implements Tetrad
         try {
             JobInfo jobInfo = jobQueue.getJobInfo();
 
+            // set location where the job is running
+            jobInfo.setJobLocation(jobLocationService.findByShortName(JobLocationService.LOCAL_SHORT_NAME));
+
             ProcessBuilder pb = new ProcessBuilder(cmdLineService.createCmdList(jobInfo, true));
             pb.redirectError(fileSysService.getErrorFile(jobInfo).toFile());
 
             Process process = pb.start();
-            jobQueueService.setPID(Processes.processId(process), jobQueue);
+            Long pid = Processes.processId(process);
+            LOGGER.info("Running task PID: " + pid);
+            jobQueueService.setPID(pid, jobQueue);
 
             process.waitFor();
 
