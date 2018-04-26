@@ -90,13 +90,13 @@ public class LocalTetradTaskService extends AbstractTetradTask implements Tetrad
     }
 
     @Override
-    public void collectResultFiles(JobQueue jobQueue) {
-        JobInfo jobInfo = jobQueue.getJobInfo();
+    public void collectResultFiles(JobInfo jobInfo) {
         UserAccount userAccount = jobInfo.getUserAccount();
+        String subFolder = jobInfo.getName();
 
         List<Path> files = new LinkedList<>();
         try {
-            files.addAll(fileSysService.getUserResultFiles(jobInfo.getUserAccount()));
+            files.addAll(fileSysService.getFilesInResultDirectory(subFolder, userAccount));
         } catch (IOException exception) {
             LOGGER.error("", exception);
         }
@@ -104,8 +104,6 @@ public class LocalTetradTaskService extends AbstractTetradTask implements Tetrad
         try {
             FileFormat fileFormat = fileFormatService.findByShortName(FileFormatService.TETRAD_RESULT_SHORT_NAME);
             jobResultService.addResultFiles(jobInfo, files, fileFormat, userAccount);
-
-            jobQueueService.getRepository().delete(jobQueue);
         } catch (Exception exception) {
             LOGGER.error("", exception);
         }

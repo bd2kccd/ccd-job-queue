@@ -123,10 +123,17 @@ public class FileSysService {
         return Paths.get(dataDir, fileName);
     }
 
-    public List<Path> getUserResultFiles(UserAccount userAccount) throws IOException {
-        return Files.walk(getUserResultDirectory(userAccount))
+    public List<Path> getFilesInResultDirectory(String subFolder, UserAccount userAccount) throws IOException {
+        String resultDir = getUserResultDirectory(userAccount).toString();
+
+        return Files.walk(Paths.get(resultDir, subFolder))
                 .filter(Files::isRegularFile)
                 .collect(Collectors.toList());
     }
 
+//    public List<Path> getUserResultFiles(UserAccount userAccount) throws IOException {
+//        return Files.walk(getUserResultDirectory(userAccount))
+//                .filter(Files::isRegularFile)
+//                .collect(Collectors.toList());
+//    }
 }

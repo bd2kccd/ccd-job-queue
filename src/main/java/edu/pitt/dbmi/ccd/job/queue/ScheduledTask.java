@@ -79,9 +79,11 @@ public class ScheduledTask {
     private void handleFinishedTasks() {
         findByStatus(JobStatusService.FINISHED_SHORT_NAME)
                 .forEach(job -> {
+                    jobQueueService.getRepository().delete(job);
                     JobInfo jobInfo = job.getJobInfo();
                     if (isTetradJob(jobInfo)) {
-                        tetradTaskService.collectResultFiles(job);
+                        LOGGER.info("Collecting result files: " + job.getId());
+                        tetradTaskService.collectResultFiles(job.getJobInfo());
                     }
                 });
     }
