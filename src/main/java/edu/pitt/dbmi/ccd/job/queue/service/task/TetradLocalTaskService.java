@@ -19,20 +19,14 @@
 package edu.pitt.dbmi.ccd.job.queue.service.task;
 
 import de.flapdoodle.embed.process.runtime.Processes;
-import edu.pitt.dbmi.ccd.db.entity.FileFormat;
 import edu.pitt.dbmi.ccd.db.entity.JobInfo;
 import edu.pitt.dbmi.ccd.db.entity.JobQueue;
-import edu.pitt.dbmi.ccd.db.entity.UserAccount;
-import edu.pitt.dbmi.ccd.db.service.FileFormatService;
+import edu.pitt.dbmi.ccd.db.service.JobInfoService;
 import edu.pitt.dbmi.ccd.db.service.JobLocationService;
 import edu.pitt.dbmi.ccd.db.service.JobQueueService;
-import edu.pitt.dbmi.ccd.db.service.JobResultService;
 import edu.pitt.dbmi.ccd.job.queue.service.CommandLineService;
 import edu.pitt.dbmi.ccd.job.queue.service.FileSysService;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.LinkedList;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,25 +42,23 @@ import org.springframework.stereotype.Service;
  */
 @Profile("local")
 @Service
-public class LocalTetradTaskService extends AbstractTetradTask implements TetradTaskService {
+public class TetradLocalTaskService implements TetradTaskService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LocalTetradTaskService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TetradLocalTaskService.class);
 
     private final CommandLineService cmdLineService;
     private final FileSysService fileSysService;
     private final JobQueueService jobQueueService;
-    private final JobResultService jobResultService;
+    private final JobInfoService jobInfoService;
     private final JobLocationService jobLocationService;
-    private final FileFormatService fileFormatService;
 
     @Autowired
-    public LocalTetradTaskService(CommandLineService cmdLineService, FileSysService fileSysService, JobQueueService jobQueueService, JobResultService jobResultService, JobLocationService jobLocationService, FileFormatService fileFormatService) {
+    public TetradLocalTaskService(CommandLineService cmdLineService, FileSysService fileSysService, JobQueueService jobQueueService, JobInfoService jobInfoService, JobLocationService jobLocationService) {
         this.cmdLineService = cmdLineService;
         this.fileSysService = fileSysService;
         this.jobQueueService = jobQueueService;
-        this.jobResultService = jobResultService;
+        this.jobInfoService = jobInfoService;
         this.jobLocationService = jobLocationService;
-        this.fileFormatService = fileFormatService;
     }
 
     @Async
@@ -77,7 +69,8 @@ public class LocalTetradTaskService extends AbstractTetradTask implements Tetrad
             JobInfo jobInfo = jobQueue.getJobInfo();
 
             // set location where the job is running
-            jobInfo.setJobLocation(jobLocationService.findByShortName(JobLocationService.LOCAL_SHORT_NAME));
+            jobInfo.setJobLocation(jobLocationService.findById(JobLocationService.LOCAL_ID));
+            jobInfo = jobInfoService.getRepository().save(jobInfo);
 
             ProcessBuilder pb = new ProcessBuilder(cmdLineService.createCmdList(jobInfo, true));
             pb.redirectError(fileSysService.getErrorFile(jobInfo).toFile());
@@ -95,27 +88,6 @@ public class LocalTetradTaskService extends AbstractTetradTask implements Tetrad
 
             jobQueueService.setStatusFailed(jobQueue);
         }
-    }
-
-    @Override
-    public void collectResultFiles(JobInfo jobInfo) {
-        UserAccount userAccount = jobInfo.getUserAccount();
-        String subFolder = jobInfo.getName();
-
-        List<Path> files = new LinkedList<>();
-        try {
-            files.addAll(fileSysService.getFilesInResultDirectory(subFolder, userAccount));
-        } catch (IOException exception) {
-            LOGGER.error("", exception);
-        }
-
-        try {
-            FileFormat fileFormat = fileFormatService.findByShortName(FileFormatService.TETRAD_RESULT_SHORT_NAME);
-            jobResultService.addResultFiles(jobInfo, files, fileFormat, userAccount);
-        } catch (Exception exception) {
-            LOGGER.error("", exception);
-        }
-
     }
 
 }

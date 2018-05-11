@@ -18,7 +18,6 @@
  */
 package edu.pitt.dbmi.ccd.job.queue.service.task;
 
-import edu.pitt.dbmi.ccd.db.entity.JobInfo;
 import edu.pitt.dbmi.ccd.db.entity.JobQueue;
 
 /**
@@ -30,7 +29,5 @@ import edu.pitt.dbmi.ccd.db.entity.JobQueue;
 public interface TetradTaskService {
 
     public void runTask(JobQueue jobQueue);
-
-    public void collectResultFiles(JobInfo jobInfo);
 
 }

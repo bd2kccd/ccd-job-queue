@@ -18,12 +18,16 @@
  */
 package edu.pitt.dbmi.ccd.job.queue.service;
 
+import edu.pitt.dbmi.ccd.db.entity.DataDelimiter;
 import edu.pitt.dbmi.ccd.db.entity.File;
 import edu.pitt.dbmi.ccd.db.entity.JobInfo;
 import edu.pitt.dbmi.ccd.db.entity.TetradDataFile;
 import edu.pitt.dbmi.ccd.db.entity.UserAccount;
+import edu.pitt.dbmi.ccd.db.entity.VariableType;
+import edu.pitt.dbmi.ccd.db.service.DataDelimiterService;
 import edu.pitt.dbmi.ccd.db.service.FileGroupService;
 import edu.pitt.dbmi.ccd.db.service.TetradDataFileService;
+import edu.pitt.dbmi.ccd.db.service.VariableTypeService;
 import edu.pitt.dbmi.ccd.job.queue.prop.JobQueueProperties;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -80,10 +84,10 @@ public class CommandLineService {
 
     private void addDelimiterAndVariableType(TetradDataFile dataFile, List<String> cmdList) {
         cmdList.add("--delimiter");
-        cmdList.add(dataFile.getDataDelimiter().getShortName());
+        cmdList.add(getCmdLineParam(dataFile.getDataDelimiter()));
 
         cmdList.add("--data-type");
-        cmdList.add(dataFile.getVariableType().getShortName());
+        cmdList.add(getCmdLineParam(dataFile.getVariableType()));
     }
 
     private void addLocalDirOut(JobInfo jobInfo, List<String> cmdList) {
@@ -105,7 +109,7 @@ public class CommandLineService {
 
         if (jobInfo.isSingleDataset()) {
             TetradDataFile dataFile = tetradDataFileService.getRepository()
-                    .findByIdAndUserAccount(jobInfo.getDatasetId(), userAccount);
+                    .findByIdAndUserAccount(jobInfo.getDatasetFileId(), userAccount);
             if (dataFile != null) {
                 cmdList.add("--dataset");
                 cmdList.add(fileSysService.getDataset(jobInfo.getUserAccount(), dataFile.getFile()).toString());
@@ -114,7 +118,7 @@ public class CommandLineService {
             }
         } else {
             List<File> files = fileGroupService.getRepository()
-                    .getFiles(jobInfo.getDatasetId(), userAccount);
+                    .getFiles(jobInfo.getDatasetFileId(), userAccount);
             List<TetradDataFile> dataFiles = tetradDataFileService.getRepository()
                     .findByFileIn(files);
             if (!dataFiles.isEmpty()) {
@@ -170,10 +174,44 @@ public class CommandLineService {
 
         // output options
         cmdList.add("--prefix");
-        cmdList.add(jobInfo.getName());
+        cmdList.add("tetrad");
 
         cmdList.add("--json-graph");
         cmdList.add("--skip-latest");
+    }
+
+    private String getCmdLineParam(VariableType variableType) {
+        long id = variableType.getId();
+        if (id == VariableTypeService.CONTINUOUS_ID) {
+            return "continuous";
+        } else if (id == VariableTypeService.DISCRETE_ID) {
+            return "discrete";
+        } else if (id == VariableTypeService.MIXED_ID) {
+            return "mixed";
+        } else {
+            throw new IllegalArgumentException("Unknown variable type " + id + ".");
+        }
+    }
+
+    private String getCmdLineParam(DataDelimiter dataDelimiter) {
+        long id = dataDelimiter.getId();
+        if (id == DataDelimiterService.COLON_DELIM_ID) {
+            return "colon";
+        } else if (id == DataDelimiterService.COMMA_DELIM_ID) {
+            return "comma";
+        } else if (id == DataDelimiterService.PIPE_DELIM_ID) {
+            return "pipe";
+        } else if (id == DataDelimiterService.SEMICOLON_DELIM_ID) {
+            return "semicolon";
+        } else if (id == DataDelimiterService.SPACE_DELIM_ID) {
+            return "space";
+        } else if (id == DataDelimiterService.TAB_DELIM_ID) {
+            return "tab";
+        } else if (id == DataDelimiterService.WHITESPACE_DELIM_ID) {
+            return "whitespace";
+        } else {
+            throw new IllegalArgumentException("Unknown delimiter " + id + ".");
+        }
     }
 
 }

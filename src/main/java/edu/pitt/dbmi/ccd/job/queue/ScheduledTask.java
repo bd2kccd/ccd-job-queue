@@ -18,14 +18,11 @@
  */
 package edu.pitt.dbmi.ccd.job.queue;
 
-import edu.pitt.dbmi.ccd.db.entity.JobInfo;
 import edu.pitt.dbmi.ccd.db.entity.JobQueue;
-import edu.pitt.dbmi.ccd.db.entity.JobStatus;
 import edu.pitt.dbmi.ccd.db.service.AlgorithmTypeService;
 import edu.pitt.dbmi.ccd.db.service.JobQueueService;
 import edu.pitt.dbmi.ccd.db.service.JobStatusService;
 import edu.pitt.dbmi.ccd.job.queue.service.task.TetradTaskService;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,31 +52,36 @@ public class ScheduledTask {
     }
 
     private void handleCanceledTasks() {
-        findJobByStatus(JobStatusService.CANCELED_SHORT_NAME)
+        jobQueueService.getRepository()
+                .findByJobStatus(jobStatusService.findById(JobStatusService.CANCELED_ID))
                 .forEach(jobQueue -> {
                 });
     }
 
     private void handleFailedTasks() {
-        findJobByStatus(JobStatusService.FAILED_SHORT_NAME)
+        jobQueueService.getRepository()
+                .findByJobStatus(jobStatusService.findById(JobStatusService.FAILED_ID))
                 .forEach(jobQueue -> {
-                    collectResultFiles(jobQueue);
+                    LOGGER.info("Dequeue job: " + jobQueue.getId());
+                    jobQueueService.getRepository().delete(jobQueue);
                 });
     }
 
     private void handleFinishedTasks() {
-        findJobByStatus(JobStatusService.FINISHED_SHORT_NAME)
+        jobQueueService.getRepository()
+                .findByJobStatus(jobStatusService.findById(JobStatusService.FINISHED_ID))
                 .forEach(jobQueue -> {
-                    collectResultFiles(jobQueue);
+                    LOGGER.info("Dequeue job: " + jobQueue.getId());
+                    jobQueueService.getRepository().delete(jobQueue);
                 });
     }
 
     private void handleQueuedTasks() {
-        findJobByStatus(JobStatusService.QUEUED_SHORT_NAME)
+        jobQueueService.getRepository()
+                .findByJobStatus(jobStatusService.findById(JobStatusService.QUEUED_ID))
                 .forEach(jobQueue -> {
-                    JobInfo jobInfo = jobQueue.getJobInfo();
                     LOGGER.info("Running job: " + jobQueue.getId());
-                    if (isTetradJob(jobInfo)) {
+                    if (isTetradJob(jobQueue)) {
                         tetradTaskService.runTask(jobQueue);
                     }
                 });
@@ -88,28 +90,10 @@ public class ScheduledTask {
     private void handleStartedTasks() {
     }
 
-    private void collectResultFiles(JobQueue jobQueue) {
-        JobInfo jobInfo = jobQueue.getJobInfo();
-        if (isTetradJob(jobInfo)) {
-            try {
-                tetradTaskService.collectResultFiles(jobInfo);
+    private boolean isTetradJob(JobQueue jobQueue) {
+        long id = jobQueue.getJobInfo().getAlgorithmType().getId();
 
-                jobQueueService.getRepository().delete(jobQueue);
-            } catch (Exception exception) {
-                LOGGER.error("", exception);
-            }
-        }
-    }
-
-    private boolean isTetradJob(JobInfo jobInfo) {
-        return AlgorithmTypeService.TETRAD_SHORT_NAME
-                .equals(jobInfo.getAlgorithmType().getShortName());
-    }
-
-    private List<JobQueue> findJobByStatus(String statusShortName) {
-        JobStatus jobStatus = jobStatusService.findByShortName(statusShortName);
-
-        return jobQueueService.getRepository().findByJobStatus(jobStatus);
+        return id == AlgorithmTypeService.TETRAD_ID;
     }
 
     @Scheduled(fixedRateString = "${ccd.schedule.rate.fixed:5000}")

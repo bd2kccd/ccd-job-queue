@@ -21,6 +21,7 @@ package edu.pitt.dbmi.ccd.job.queue.service;
 import edu.pitt.dbmi.ccd.db.entity.File;
 import edu.pitt.dbmi.ccd.db.entity.JobInfo;
 import edu.pitt.dbmi.ccd.db.entity.UserAccount;
+import edu.pitt.dbmi.ccd.db.service.AlgorithmTypeService;
 import edu.pitt.dbmi.ccd.job.queue.prop.JobQueueProperties;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -110,10 +111,13 @@ public class FileSysService {
     }
 
     public Path getErrorFile(JobInfo jobInfo) {
+        long id = jobInfo.getAlgorithmType().getId();
         String outDir = getOutputDirectory(jobInfo).toString();
-        String errorFile = String.format("%s.error", jobInfo.getName());
+        String errFile = (id == AlgorithmTypeService.TETRAD_ID)
+                ? "tetrad.error"
+                : "tdi.error";
 
-        return Paths.get(outDir, errorFile);
+        return Paths.get(outDir, errFile);
     }
 
     public Path getDataset(UserAccount userAccount, File file) {
@@ -131,9 +135,4 @@ public class FileSysService {
                 .collect(Collectors.toList());
     }
 
-//    public List<Path> getUserResultFiles(UserAccount userAccount) throws IOException {
-//        return Files.walk(getUserResultDirectory(userAccount))
-//                .filter(Files::isRegularFile)
-//                .collect(Collectors.toList());
-//    }
 }
